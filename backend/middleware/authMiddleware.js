@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const Vendor = require("../models/Vendor");
 
+const JWT_SECRET_KEY = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim()) || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ";
+
 const protect = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -11,7 +13,7 @@ const protect = async (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ");
+    const decoded = jwt.verify(token, JWT_SECRET_KEY);
 
     // Check single active session against MongoDB
     const vendor = await Vendor.findById(decoded.id).select("sessionToken");

@@ -5,12 +5,14 @@ const jwt = require("jsonwebtoken");
 
 const Admin = require("../models/Admin");
 
+const JWT_SECRET_KEY = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim()) || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ";
+
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ", { expiresIn: "7d" });
+  return jwt.sign({ id }, JWT_SECRET_KEY, { expiresIn: "7d" });
 };
 
 const generateAdminToken = (id) => {
-  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ", { expiresIn: "7d" });
+  return jwt.sign({ id, role: "superadmin" }, JWT_SECRET_KEY, { expiresIn: "7d" });
 };
 
 const registerVendor = async (req, res) => {
@@ -115,11 +117,11 @@ const loginVendor = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Login Error:", err);
+    console.error("Login Error Details:", err.stack || err);
     if (err.name === "MongooseServerSelectionError" || mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ message: "Database connection error. Please whitelist your IP in MongoDB Atlas console (0.0.0.0/0). ❌" });
+      return res.status(503).json({ message: "Database connection error. Please whitelist 0.0.0.0/0 in MongoDB Atlas console. ❌" });
     }
-    res.status(500).json({ message: "Server error ❌", error: err.message });
+    res.status(500).json({ message: `Server error: ${err.message} ❌`, error: err.message });
   }
 };
 

@@ -4,8 +4,10 @@ const Medicine = require("../models/Medicine");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const JWT_SECRET_KEY = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim()) || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ";
+
 const generateAdminToken = (id) => {
-  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ", { expiresIn: "7d" });
+  return jwt.sign({ id, role: "superadmin" }, JWT_SECRET_KEY, { expiresIn: "7d" });
 };
 
 // Super Admin Login
