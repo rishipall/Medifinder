@@ -78,17 +78,17 @@ export const THEMES = [
   },
 ];
 
-const getSavedTheme = () => {
+const getRandomTheme = () => {
   try {
-    const saved = localStorage.getItem("medifind_theme");
-    return saved && THEMES.some((t) => t.id === saved) ? saved : "classic";
+    const randomIndex = Math.floor(Math.random() * THEMES.length);
+    return THEMES[randomIndex].id;
   } catch (err) {
-    return "classic";
+    return "pharmaglass";
   }
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(getSavedTheme);
+  const [theme, setTheme] = useState(getRandomTheme);
 
   // Fetch global theme from backend MongoDB on mount and sync across all clients
   const fetchGlobalTheme = async () => {
