@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const generateAdminToken = (id) => {
-  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET || "medifind_super_secret_key", { expiresIn: "7d" });
+  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 // Super Admin Login

@@ -6,11 +6,11 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "medifind_super_secret_key", { expiresIn: "7d" });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 const generateAdminToken = (id) => {
-  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET || "medifind_super_secret_key", { expiresIn: "7d" });
+  return jwt.sign({ id, role: "superadmin" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 const registerVendor = async (req, res) => {
