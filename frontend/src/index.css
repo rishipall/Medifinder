@@ -1,0 +1,326 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+  background-color: #050811;
+  color: #f1f5f9;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* ==========================================================================
+   MULTI-THEME SUITE (8 DISTINCT MEDICAL & FUTURISTIC THEMES)
+   ========================================================================== */
+
+/* 1. Theme Classic (Original Cyber Dark Navy) */
+html.theme-classic body {
+  background-color: #050811;
+  color: #f1f5f9;
+}
+
+/* 2. Theme PharmaGlass (Attached Demo Theme: Botanical Water Glow & Bio-Glass) */
+html.theme-pharmaglass body {
+  background-color: #030712;
+  color: #f1f5f9;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(13, 148, 136, 0.35) 0px, transparent 50%),
+    radial-gradient(at 100% 50%, rgba(30, 64, 175, 0.35) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.25) 0px, transparent 50%);
+}
+
+html.theme-pharmaglass .glass-panel {
+  background: rgba(8, 22, 40, 0.65) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(6, 182, 212, 0.25) !important;
+  box-shadow: 0 20px 50px rgba(0, 8, 20, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+}
+
+/* 3. Theme Sunset Coral Health (Warm Obsidian & Coral/Orange Glow) */
+html.theme-sunset-coral body {
+  background-color: #12080a;
+  color: #fdf2f2;
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(244, 63, 94, 0.3) 0px, transparent 50%),
+    radial-gradient(at 90% 90%, rgba(249, 115, 22, 0.25) 0px, transparent 50%);
+}
+
+html.theme-sunset-coral .glass-panel {
+  background: rgba(28, 14, 18, 0.7) !important;
+  backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(18, 8, 10, 0.8) !important;
+}
+
+/* 4. Theme Oceanic Deep Azure (Midnight Azure Abyss) */
+html.theme-oceanic-azure body {
+  background-color: #040e1a;
+  color: #f0f9ff;
+  background-image: 
+    radial-gradient(at 30% 0%, rgba(2, 132, 199, 0.35) 0px, transparent 50%),
+    radial-gradient(at 70% 100%, rgba(14, 165, 233, 0.25) 0px, transparent 50%);
+}
+
+html.theme-oceanic-azure .glass-panel {
+  background: rgba(7, 24, 45, 0.7) !important;
+  backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(4, 14, 26, 0.8) !important;
+}
+
+/* 5. Theme Royal Cyberpunk Purple (Deep Sapphire & Neon Glow) */
+html.theme-royal-purple body {
+  background-color: #0b071e;
+  color: #f8fafc;
+  background-image: 
+    radial-gradient(at 20% 20%, rgba(147, 51, 234, 0.35) 0px, transparent 50%),
+    radial-gradient(at 80% 80%, rgba(236, 72, 153, 0.25) 0px, transparent 50%);
+}
+
+html.theme-royal-purple .glass-panel {
+  background: rgba(20, 14, 45, 0.7) !important;
+  backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(11, 7, 30, 0.8) !important;
+}
+
+/* 6. Theme OLED Stealth Pure Black (True AMOLED Black + Laser Emerald) */
+html.theme-oled-stealth body {
+  background-color: #000000;
+  color: #f1f5f9;
+}
+
+html.theme-oled-stealth .glass-panel {
+  background: rgba(10, 10, 10, 0.95) !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* 7. Theme Emerald Light (Clean Light Mint Glass with High Contrast) */
+html.theme-emerald-light body {
+  background-color: #f0fdf4;
+  color: #0f172a;
+}
+
+html.theme-emerald-light .glass-panel,
+html.theme-emerald-light .glass-card,
+html.theme-emerald-light .glass-card-bold {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.08) !important;
+  color: #0f172a !important;
+}
+
+html.theme-emerald-light .bg-slate-900,
+html.theme-emerald-light .bg-slate-950,
+html.theme-emerald-light .bg-slate-900\/90,
+html.theme-emerald-light .bg-slate-900\/80,
+html.theme-emerald-light .bg-slate-950\/40,
+html.theme-emerald-light div[class*="bg-[#050811]"] {
+  background-color: rgba(241, 245, 249, 0.95) !important;
+  color: #0f172a !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+}
+
+html.theme-emerald-light .text-white,
+html.theme-emerald-light .text-slate-100,
+html.theme-emerald-light .text-slate-200,
+html.theme-emerald-light .text-slate-300 {
+  color: #0f172a !important;
+}
+
+html.theme-emerald-light .text-slate-400,
+html.theme-emerald-light .text-slate-500 {
+  color: #475569 !important;
+}
+
+html.theme-emerald-light .border-slate-800,
+html.theme-emerald-light .border-slate-700,
+html.theme-emerald-light .border-slate-800\/80,
+html.theme-emerald-light .border-slate-700\/80 {
+  border-color: rgba(203, 213, 225, 0.8) !important;
+}
+
+html.theme-emerald-light input,
+html.theme-emerald-light select,
+html.theme-emerald-light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+html.theme-emerald-light input::placeholder,
+html.theme-emerald-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.theme-emerald-light table th {
+  background-color: rgba(226, 232, 240, 0.95) !important;
+  color: #0f172a !important;
+}
+
+html.theme-emerald-light table tr:hover {
+  background-color: rgba(204, 251, 241, 0.6) !important;
+}
+
+html.theme-emerald-light .text-teal-400,
+html.theme-emerald-light .text-teal-300 {
+  color: #0d9488 !important;
+}
+
+html.theme-emerald-light .text-cyan-400,
+html.theme-emerald-light .text-cyan-300 {
+  color: #0284c7 !important;
+}
+
+html.theme-emerald-light .text-purple-400,
+html.theme-emerald-light .text-purple-300 {
+  color: #7e22ce !important;
+}
+
+html.theme-emerald-light .text-amber-400,
+html.theme-emerald-light .text-amber-300 {
+  color: #b45309 !important;
+}
+
+/* 8. Theme Clinical Laboratory White (High Contrast Medical White & Electric Blue) */
+html.theme-clinical-white body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.theme-clinical-white .glass-panel,
+html.theme-clinical-white .glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(37, 99, 235, 0.25) !important;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.06) !important;
+  color: #0f172a !important;
+}
+
+html.theme-clinical-white .bg-slate-900,
+html.theme-clinical-white .bg-slate-950,
+html.theme-clinical-white div[class*="bg-[#050811]"] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.theme-clinical-white .text-white,
+html.theme-clinical-white .text-slate-100,
+html.theme-clinical-white .text-slate-200,
+html.theme-clinical-white .text-slate-300 {
+  color: #0f172a !important;
+}
+
+html.theme-clinical-white input,
+html.theme-clinical-white select,
+html.theme-clinical-white textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(37, 99, 235, 0.4) !important;
+}
+
+/* ==========================================================================
+   GLASSMORPHISM UTILITIES & DEMO THEME HELPERS
+   ========================================================================== */
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-mint {
+  background: rgba(13, 148, 136, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  box-shadow: 0 15px 35px rgba(13, 148, 136, 0.15);
+}
+
+.glass-card-bold {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.glass-dock {
+  background: rgba(10, 25, 47, 0.6);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.neon-border-glow {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+/* Gradient Text */
+.text-gradient {
+  background: linear-gradient(135deg, #2dd4bf 0%, #06b6d4 50%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0f1d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0d9488;
+}
+
+/* Keyframe Animations */
+@keyframes blob {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.12); }
+  66% { transform: translate(-25px, 25px) scale(0.92); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.05); }
+}
+
+.animate-blob {
+  animation: blob 12s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite ease-in-out;
+}

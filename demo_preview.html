@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aetheria Health | Modern AI Medicine & Care</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        clinical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        navy: {
+                            800: '#0f172a',
+                            900: '#0a0f1d',
+                            950: '#050811',
+                        },
+                        neon: {
+                            cyan: '#06b6d4',
+                            teal: '#2dd4bf',
+                            emerald: '#10b981',
+                            violet: '#8b5cf6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'float-delayed': 'float 6s ease-in-out 3s infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                        'beat': 'heartbeat 1.2s ease-in-out infinite',
+                        'scan': 'scanning 3s ease-in-out infinite',
+                        'shimmer': 'shimmer 2.5s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-15px) rotate(3deg)' },
+                        },
+                        heartbeat: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '15%': { transform: 'scale(1.15)' },
+                            '30%': { transform: 'scale(1)' },
+                            '45%': { transform: 'scale(1.08)' },
+                        },
+                        scanning: {
+                            '0%, 100%': { top: '0%' },
+                            '50%': { top: '90%' },
+                        },
+                        shimmer: {
+                            '100%': { transform: 'translateX(100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #050811;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(45, 212, 191, 0.12);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(45, 212, 191, 0.35);
+            box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.25);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #2dd4bf 0%, #06b6d4 50%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0d9488;
+        }
+
+        .ecg-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+    </style>
+</head>
+<body class="selection:bg-teal-500 selection:text-white">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- NAVIGATION BAR -->
+    <header class="fixed top-0 left-0 right-0 z-40 glass-panel border-b border-slate-800/60 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            
+            <a href="#" onclick="switchPage('home'); return false;" class="flex items-center gap-3 group">
+                <div class="relative w-11 h-11 rounded-2xl bg-gradient-to-tr from-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-teal-500/20 group-hover:shadow-teal-500/40 transition-all">
+                    <div class="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center relative overflow-hidden">
+                        <i class="fa-solid font-bold text-teal-400 text-xl fa-heart-pulse animate-beat"></i>
+                        <span class="absolute inset-0 bg-teal-400/10 animate-ping rounded-full pointer-events-none"></span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
+                        AETHERIA <span class="text-teal-400 font-light">HEALTH</span>
+                    </span>
+                    <span class="text-[10px] tracking-widest text-teal-400 font-semibold uppercase block -mt-1">Modern Precision Care</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-1 bg-slate-900/60 p-1.5 rounded-full border border-slate-800">
+                <button onclick="switchPage('home')" id="nav-home" class="nav-btn px-5 py-2 rounded-full text-sm font-medium transition-all text-teal-400 bg-slate-800/80 shadow-sm">
+                    <i class="fa-solid fa-house text-xs mr-1.5"></i> Home
+                </button>
+                <button onclick="switchPage('services')" id="nav-services" class="nav-btn px-5 py-2 rounded-full text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+                    <i class="fa-solid fa-stethoscopes text-xs mr-1.5"></i> Services
+                </button>
+                <button onclick="switchPage('about')" id="nav-about" class="nav-btn px-5 py-2 rounded-full text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+                    <i class="fa-solid fa-hospital-user text-xs mr-1.5"></i> About
+                </button>
+                <button onclick="switchPage('faqs')" id="nav-faqs" class="nav-btn px-5 py-2 rounded-full text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/40">
+                    <i class="fa-solid fa-circle-question text-xs mr-1.5"></i> FAQs
+                </button>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <button onclick="openBookingModal()" class="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 font-bold text-sm hover:brightness-110 shadow-lg shadow-teal-500/20 active:scale-95 transition-all">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Book Consult</span>
+                </button>
+
+                <div id="auth-header-btn">
+                    <button onclick="toggleAuthModal(true)" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium text-white transition-all active:scale-95">
+                        <i class="fa-solid fa-user-lock text-teal-400"></i>
+                        <span>Login / Sign Up</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-20 min-h-screen">
+        <div id="page-home" class="page-view space-y-24 pb-20">
+            <section class="relative pt-12 lg:pt-20 pb-12 overflow-hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div class="grid lg:grid-cols-12 gap-12 items-center">
+                        <div class="lg:col-span-7 space-y-8">
+                            <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass-panel border border-teal-500/30 text-teal-300 text-xs font-semibold tracking-wide">
+                                <span class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
+                                <span>NEXT-GEN AI TELEHEALTH PLATFORM 2.0</span>
+                            </div>
+                            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">
+                                Precision Medicine <br/>
+                                <span class="text-gradient">Powered by Innovation</span> & Empathy
+                            </h1>
+                            <p class="text-slate-300 text-lg leading-relaxed max-w-2xl font-light">
+                                Experience ultra-fast virtual consults, AI-assisted diagnostics, personalized genomic wellness plans, and instant specialist bookings all in one unified medical portal.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800 bg-navy-950 pt-12 pb-8 text-slate-400 text-xs text-center">
+        &copy; 2026 Aetheria Modern Medicine Website.
+    </footer>
+</body>
+</html>
