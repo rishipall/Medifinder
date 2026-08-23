@@ -95,8 +95,13 @@ export const ThemeProvider = ({ children }) => {
     try {
       const res = await API.get("/admin/theme");
       if (res.data?.theme && THEMES.some((t) => t.id === res.data.theme)) {
-        setTheme(res.data.theme);
-        localStorage.setItem("medifind_theme", res.data.theme);
+        setTheme((prevTheme) => {
+          if (prevTheme !== res.data.theme) {
+            localStorage.setItem("medifind_theme", res.data.theme);
+            return res.data.theme;
+          }
+          return prevTheme;
+        });
       }
     } catch (err) {
       // Fallback to local theme if offline
@@ -105,8 +110,8 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     fetchGlobalTheme();
-    // Poll every 8 seconds so all users immediately get theme updates set by Super Admin
-    const interval = setInterval(fetchGlobalTheme, 8000);
+    // Poll every 3 seconds so all users immediately get theme updates set by Super Admin
+    const interval = setInterval(fetchGlobalTheme, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -116,6 +121,7 @@ export const ThemeProvider = ({ children }) => {
       localStorage.setItem("medifind_theme", newThemeId);
       try {
         await API.post("/admin/theme", { theme: newThemeId });
+        fetchGlobalTheme();
       } catch (err) {
         console.warn("Global theme persistence notice:", err.message);
       }

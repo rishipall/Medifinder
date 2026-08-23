@@ -215,17 +215,21 @@ const getGlobalTheme = async (req, res) => {
   }
 };
 
-// Update Global Theme (Super Admin)
+// Update Global Theme (Super Admin / Public Theme Manager)
 const updateGlobalTheme = async (req, res) => {
   try {
     const { theme } = req.body;
+    if (!theme) {
+      return res.status(400).json({ message: "Theme ID is required ❌" });
+    }
     let settings = await Settings.findOne({ key: "global_settings" });
     if (!settings) {
-      settings = await Settings.create({ key: "global_settings", theme: theme || "classic" });
+      settings = await Settings.create({ key: "global_settings", theme });
     } else {
-      settings.theme = theme || settings.theme;
+      settings.theme = theme;
       await settings.save();
     }
+    console.log(`Global Theme Updated in MongoDB to: "${settings.theme}" ✅`);
     res.status(200).json({ message: "Global theme updated successfully ✅", theme: settings.theme });
   } catch (err) {
     console.error("Update Theme Error:", err);
