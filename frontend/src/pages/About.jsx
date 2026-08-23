@@ -6,7 +6,7 @@ const About = () => {
   const [profileImages] = useState([
     "https://ik.imagekit.io/rishipall/Medifind/3.jpeg", // Option 1 / Primary
     "https://ik.imagekit.io/rishipall/4.jpeg", // Option 2
-    "https://ik.imagekit.io/rishipall/2.jpeg?updatedAt=1787307569855", // Option 3
+    "https://ik.imagekit.io/rishipall/IMG_20220521_200620~2.jpg", // Option 3
   ]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
