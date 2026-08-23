@@ -11,7 +11,7 @@ const protect = async (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "R9PV0hydrTHLEtl3yngua8VecGTmg15lIQr3NMlK5vJ");
 
     // Check single active session against MongoDB
     const vendor = await Vendor.findById(decoded.id).select("sessionToken");
