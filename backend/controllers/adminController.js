@@ -1,6 +1,7 @@
 const Admin = require("../models/Admin");
 const Vendor = require("../models/Vendor");
 const Medicine = require("../models/Medicine");
+const Settings = require("../models/Settings");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -201,6 +202,37 @@ const deleteStoreByAdmin = async (req, res) => {
   }
 };
 
+// Get Global Theme (Public)
+const getGlobalTheme = async (req, res) => {
+  try {
+    let settings = await Settings.findOne({ key: "global_settings" });
+    if (!settings) {
+      settings = await Settings.create({ key: "global_settings", theme: "classic" });
+    }
+    res.status(200).json({ theme: settings.theme });
+  } catch (err) {
+    res.status(200).json({ theme: "classic" });
+  }
+};
+
+// Update Global Theme (Super Admin)
+const updateGlobalTheme = async (req, res) => {
+  try {
+    const { theme } = req.body;
+    let settings = await Settings.findOne({ key: "global_settings" });
+    if (!settings) {
+      settings = await Settings.create({ key: "global_settings", theme: theme || "classic" });
+    } else {
+      settings.theme = theme || settings.theme;
+      await settings.save();
+    }
+    res.status(200).json({ message: "Global theme updated successfully ✅", theme: settings.theme });
+  } catch (err) {
+    console.error("Update Theme Error:", err);
+    res.status(500).json({ message: "Failed to update theme ❌", error: err.message });
+  }
+};
+
 module.exports = {
   loginAdmin,
   getAllStores,
@@ -208,4 +240,7 @@ module.exports = {
   createStoreByAdmin,
   updateStoreByAdmin,
   deleteStoreByAdmin,
+  getGlobalTheme,
+  updateGlobalTheme,
 };
+

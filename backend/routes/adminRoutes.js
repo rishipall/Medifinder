@@ -7,13 +7,17 @@ const {
   createStoreByAdmin,
   updateStoreByAdmin,
   deleteStoreByAdmin,
+  getGlobalTheme,
+  updateGlobalTheme,
 } = require("../controllers/adminController");
 const { protectAdmin } = require("../middleware/adminMiddleware");
 
-// Public route for Super Admin login
+// Public route for Super Admin login & global theme fetching
 router.post("/login", loginAdmin);
+router.get("/theme", getGlobalTheme);
 
-// Protected routes for Super Admin shop management
+// Protected routes for Super Admin shop management & global theme update
+router.post("/theme", protectAdmin, updateGlobalTheme);
 router.get("/stores", protectAdmin, getAllStores);
 router.post("/stores", protectAdmin, createStoreByAdmin);
 router.put("/stores/:id/approve", protectAdmin, toggleStoreApproval);

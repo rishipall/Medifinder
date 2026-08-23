@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import API from "../api/axios";
 
 const ThemeContext = createContext();
 
@@ -89,10 +90,35 @@ const getSavedTheme = () => {
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(getSavedTheme);
 
-  const changeTheme = (newThemeId) => {
+  // Fetch global theme from backend MongoDB on mount and sync across all clients
+  const fetchGlobalTheme = async () => {
+    try {
+      const res = await API.get("/admin/theme");
+      if (res.data?.theme && THEMES.some((t) => t.id === res.data.theme)) {
+        setTheme(res.data.theme);
+        localStorage.setItem("medifind_theme", res.data.theme);
+      }
+    } catch (err) {
+      // Fallback to local theme if offline
+    }
+  };
+
+  useEffect(() => {
+    fetchGlobalTheme();
+    // Poll every 8 seconds so all users immediately get theme updates set by Super Admin
+    const interval = setInterval(fetchGlobalTheme, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const changeTheme = async (newThemeId) => {
     if (THEMES.some((t) => t.id === newThemeId)) {
       setTheme(newThemeId);
       localStorage.setItem("medifind_theme", newThemeId);
+      try {
+        await API.post("/admin/theme", { theme: newThemeId });
+      } catch (err) {
+        console.warn("Global theme persistence notice:", err.message);
+      }
     }
   };
 
