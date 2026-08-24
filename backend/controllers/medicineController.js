@@ -1,9 +1,9 @@
 const https = require("https");
-const Medicine = require("../models/Medicine");
+const MasterMedicine = require("../models/MasterMedicine");
+const StoreInventory = require("../models/StoreInventory");
 
 // Dictionary for mapping common Hindi / Devanagari medicine terms to English
 const HINDI_MEDICINE_MAP = {
-
   "पैरासिटामोल": "paracetamol",
   "पेरासिटामोल": "paracetamol",
   "क्रोसिन": "crocin",
@@ -19,6 +19,32 @@ const HINDI_MEDICINE_MAP = {
   "एजिथ्रोमाइसिन": "azithromycin",
   "अज़िथ्रोमाइसिन": "azithromycin",
   "मेटफॉर्मिन": "metformin"
+};
+
+// Helper function to format inventory item to match legacy medicine output shape
+const formatInventoryItem = (inv) => {
+  const catalog = inv.medicineId && typeof inv.medicineId === "object" ? inv.medicineId : {};
+  return {
+    _id: inv._id,
+    medicineCatalogId: catalog._id || null,
+    name: catalog.name || catalog.brandName || "",
+    brandName: catalog.brandName || catalog.name || "",
+    companyName: catalog.companyName || "Generic / Unspecified",
+    dosageMg: catalog.dosageMg || "",
+    packSize: catalog.packSize || "1 Unit",
+    category: catalog.category || "other",
+    composition: catalog.composition || "",
+    mrp: catalog.mrp !== undefined ? catalog.mrp : (inv.price || 0),
+    requiresPrescription: Boolean(catalog.requiresPrescription),
+    price: inv.price,
+    stockQuantity: inv.stockQuantity,
+    inStock: inv.inStock,
+    expiryDate: inv.expiryDate || "",
+    batchNumber: inv.batchNumber || "",
+    vendorId: inv.vendorId,
+    createdAt: inv.createdAt,
+    updatedAt: inv.updatedAt,
+  };
 };
 
 // Helper function to call Gemini Vision API with automatic model fallback
@@ -199,57 +225,66 @@ const searchMultipleMedicines = async (req, res) => {
     // Convert Hindi Devanagari script terms to English if present
     const normalizedSearchNames = searchNames.map((name) => {
       if (HINDI_MEDICINE_MAP[name]) return HINDI_MEDICINE_MAP[name];
-      // Check partial match in Hindi map
       for (const [hindi, eng] of Object.entries(HINDI_MEDICINE_MAP)) {
         if (name.includes(hindi)) return eng;
       }
       return name;
     });
 
-    // Build regex filters for each requested medicine
-    const regexQueries = [];
+    // Build regex queries to search MasterMedicine catalog
+    const catalogQueries = [];
     searchNames.forEach((origName, idx) => {
       const normName = normalizedSearchNames[idx];
-      regexQueries.push({ name: { $regex: origName, $options: "i" } });
+      catalogQueries.push({ name: { $regex: origName, $options: "i" } });
+      catalogQueries.push({ brandName: { $regex: origName, $options: "i" } });
       if (normName !== origName) {
-        regexQueries.push({ name: { $regex: normName, $options: "i" } });
+        catalogQueries.push({ name: { $regex: normName, $options: "i" } });
+        catalogQueries.push({ brandName: { $regex: normName, $options: "i" } });
       }
     });
 
-    const query = {
-      $or: regexQueries,
-      inStock: true
-    };
+    const masterMatches = await MasterMedicine.find({ $or: catalogQueries }).lean();
+    const masterIds = masterMatches.map((m) => m._id);
+
+    if (masterIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        requestedMedicines: searchNames,
+        totalStoresFound: 0,
+        stores: []
+      });
+    }
 
     const vendorFilter = {
       isApproved: { $ne: false },
       ...(city && city.trim() !== "" ? { city: { $regex: city.trim(), $options: "i" } } : {}),
     };
 
-
-
-    const medicines = await Medicine.find(query)
+    const inventoryItems = await StoreInventory.find({
+      medicineId: { $in: masterIds },
+      inStock: true
+    })
+      .populate("medicineId")
       .populate({
         path: "vendorId",
         select: "storeName phone address city lat lng",
         match: vendorFilter
       })
-      .select("name companyName dosageMg packSize category price mrp stockQuantity inStock composition requiresPrescription expiryDate batchNumber vendorId")
       .lean();
 
-
-    const validMedicines = medicines.filter((m) => m.vendorId && m.vendorId._id);
+    const validItems = inventoryItems.filter((item) => item.vendorId && item.vendorId._id && item.medicineId);
 
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
     const hasUserCoords = !isNaN(userLat) && !isNaN(userLng);
 
-    // Group matching medicines by store (vendorId)
+    // Group matching inventory items by store (vendorId)
     const storesMap = {};
 
-    validMedicines.forEach((med) => {
-      const vendor = med.vendorId;
+    validItems.forEach((inv) => {
+      const vendor = inv.vendorId;
       const storeId = vendor._id.toString();
+      const formattedMed = formatInventoryItem(inv);
 
       if (!storesMap[storeId]) {
         let distance = null;
@@ -287,18 +322,19 @@ const searchMultipleMedicines = async (req, res) => {
         };
       }
 
-      // Check which of the searchNames matched this medicine
+      // Check which searchNames match this medicine catalog item
       searchNames.forEach((reqName) => {
-        if (med.name.toLowerCase().includes(reqName.toLowerCase()) || reqName.toLowerCase().includes(med.name.toLowerCase())) {
+        const medName = formattedMed.name.toLowerCase();
+        const rName = reqName.toLowerCase();
+        if (medName.includes(rName) || rName.includes(medName)) {
           storesMap[storeId].matchedRequestedNames.add(reqName);
         }
       });
 
-      // Add medicine item details if not already present
-      const existing = storesMap[storeId].matchedItems.find((i) => i._id.toString() === med._id.toString());
+      const existing = storesMap[storeId].matchedItems.find((i) => i._id.toString() === formattedMed._id.toString());
       if (!existing) {
-        storesMap[storeId].matchedItems.push(med);
-        storesMap[storeId].totalPrice += med.price || 0;
+        storesMap[storeId].matchedItems.push(formattedMed);
+        storesMap[storeId].totalPrice += formattedMed.price || 0;
       }
     });
 
@@ -326,17 +362,10 @@ const searchMultipleMedicines = async (req, res) => {
       };
     });
 
-    // Sorting algorithm:
-    // 1. Full matches first (100% available)
-    // 2. Higher match percentage
-    // 3. Shortest distance (if location provided)
+    // Sort: full match first, higher count, shortest distance, lowest price
     storeList.sort((a, b) => {
-      if (a.isFullMatch !== b.isFullMatch) {
-        return b.isFullMatch ? 1 : -1;
-      }
-      if (a.availableCount !== b.availableCount) {
-        return b.availableCount - a.availableCount;
-      }
+      if (a.isFullMatch !== b.isFullMatch) return b.isFullMatch ? 1 : -1;
+      if (a.availableCount !== b.availableCount) return b.availableCount - a.availableCount;
       if (hasUserCoords) {
         if (a.distance === null) return 1;
         if (b.distance === null) return -1;
@@ -364,10 +393,7 @@ const searchMultipleMedicines = async (req, res) => {
   }
 };
 
-// ✅ OPTIMIZED: Filter happens in MongoDB, not frontend
-// Only matched + inStock medicines are returned
-// Vendor details populated in same query (single DB round trip)
-// Optional: city filter to reduce results further
+// 🔍 Single Medicine Search
 const searchMedicines = async (req, res) => {
   const { name, city, lat, lng, limit } = req.query;
 
@@ -376,38 +402,47 @@ const searchMedicines = async (req, res) => {
   }
 
   try {
-    const query = {
-      name: { $regex: name.trim(), $options: "i" },
-      inStock: true,
-    };
+    const normName = name.trim();
+    const masterMatches = await MasterMedicine.find({
+      $or: [
+        { name: { $regex: normName, $options: "i" } },
+        { brandName: { $regex: normName, $options: "i" } },
+        { composition: { $regex: normName, $options: "i" } },
+      ]
+    }).lean();
 
-    // Build vendor filter (only approved stores + optional city filter)
+    const masterIds = masterMatches.map((m) => m._id);
+
+    if (masterIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
     const vendorFilter = {
       isApproved: { $ne: false },
       ...(city && city.trim() !== "" ? { city: { $regex: city.trim(), $options: "i" } } : {}),
     };
 
-
-    // DB query: filter medicines + populate vendor in one shot
-    let medicines = await Medicine.find(query)
+    let inventoryItems = await StoreInventory.find({
+      medicineId: { $in: masterIds },
+      inStock: true
+    })
+      .populate("medicineId")
       .populate({
         path: "vendorId",
         select: "storeName phone address city lat lng",
         match: vendorFilter,
       })
-      .select("name category price inStock vendorId")
       .lean();
 
-    // Remove medicines where vendor didn't match city filter
-    medicines = medicines.filter((m) => m.vendorId !== null);
+    // Filter out unmatched vendor items
+    inventoryItems = inventoryItems.filter((i) => i.vendorId !== null && i.medicineId !== null);
 
-    // Backend Haversine Distance Calculation & Proximity Sorting
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
     const hasUserCoords = !isNaN(userLat) && !isNaN(userLng);
 
-    medicines = medicines.map((m) => {
-      const vendor = m.vendorId || {};
+    let result = inventoryItems.map((inv) => {
+      const vendor = inv.vendorId || {};
       const vLat = parseFloat(vendor.lat);
       const vLng = parseFloat(vendor.lng);
       let distance = null;
@@ -425,34 +460,39 @@ const searchMedicines = async (req, res) => {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         distance = parseFloat((R * c).toFixed(1));
       }
-      return { ...m, distance };
+
+      const formatted = formatInventoryItem(inv);
+      return { ...formatted, distance };
     });
 
-    // Sort ascending by distance if user coordinates provided
     if (hasUserCoords) {
-      medicines.sort((a, b) => {
+      result.sort((a, b) => {
         if (a.distance === null) return 1;
         if (b.distance === null) return -1;
         return a.distance - b.distance;
       });
     }
 
-    // Backend filtering: Limit to Top 5 nearest shops by default
     const maxLimit = parseInt(limit) || 5;
-    medicines = medicines.slice(0, maxLimit);
+    result = result.slice(0, maxLimit);
 
-    res.status(200).json(medicines);
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ message: "Server error ❌", error: err.message });
   }
 };
 
-// Get all medicines by a specific store (for store detail page)
+// Get all medicines by a specific store (for store detail & vendor dashboard)
 const getMedicinesByStore = async (req, res) => {
   try {
-    const medicines = await Medicine.find({ vendorId: req.params.vendorId })
-      .select("name companyName dosageMg packSize category price mrp stockQuantity inStock composition requiresPrescription expiryDate batchNumber")
+    const inventoryItems = await StoreInventory.find({ vendorId: req.params.vendorId })
+      .populate("medicineId")
       .lean();
+
+    const medicines = inventoryItems
+      .filter((inv) => inv.medicineId)
+      .map(formatInventoryItem);
+
     res.status(200).json(medicines);
   } catch (err) {
     res.status(500).json({ message: "Server error ❌", error: err.message });
@@ -478,68 +518,115 @@ const addMedicine = async (req, res) => {
   } = req.body;
 
   try {
+    const normName = name.toLowerCase().trim();
+    const normCompany = companyName ? companyName.trim() : "Generic / Unspecified";
+    const normDosage = dosageMg ? dosageMg.trim() : "";
+
+    // Step 1: Find or create in MasterMedicine catalog
+    let masterMed = await MasterMedicine.findOne({
+      name: normName,
+      companyName: normCompany,
+      dosageMg: normDosage,
+    });
+
     const numPrice = parseFloat(price) || 0;
     const numMrp = parseFloat(mrp) || numPrice;
+
+    if (!masterMed) {
+      masterMed = await MasterMedicine.create({
+        name: normName,
+        brandName: name.trim(),
+        companyName: normCompany,
+        dosageMg: normDosage,
+        packSize: packSize ? packSize.trim() : "1 Unit",
+        category: category || "other",
+        composition: composition ? composition.trim() : "",
+        mrp: numMrp,
+        requiresPrescription: Boolean(requiresPrescription),
+      });
+    }
+
     const numStock = parseInt(stockQuantity);
     const calculatedInStock = !isNaN(numStock) ? numStock > 0 : (inStock !== undefined ? inStock : true);
 
-    const medicine = await Medicine.create({
-      name: name.toLowerCase().trim(),
-      companyName: companyName ? companyName.trim() : "Generic / Unspecified",
-      dosageMg: dosageMg ? dosageMg.trim() : "",
-      packSize: packSize ? packSize.trim() : "1 Unit",
-      category: category || "other",
-      price: numPrice,
-      mrp: numMrp,
-      stockQuantity: !isNaN(numStock) ? numStock : 10,
-      inStock: calculatedInStock,
-      composition: composition ? composition.trim() : "",
-      requiresPrescription: Boolean(requiresPrescription),
-      expiryDate: expiryDate ? expiryDate.trim() : "",
-      batchNumber: batchNumber ? batchNumber.trim() : "",
-      vendorId: req.vendor.id,
-    });
+    // Step 2: Create or update vendor store inventory
+    const inventory = await StoreInventory.findOneAndUpdate(
+      { vendorId: req.vendor.id, medicineId: masterMed._id },
+      {
+        vendorId: req.vendor.id,
+        medicineId: masterMed._id,
+        price: numPrice,
+        stockQuantity: !isNaN(numStock) ? numStock : 10,
+        inStock: calculatedInStock,
+        expiryDate: expiryDate ? expiryDate.trim() : "",
+        batchNumber: batchNumber ? batchNumber.trim() : "",
+      },
+      { upsert: true, new: true }
+    ).populate("medicineId");
 
-    res.status(201).json({ message: "Medicine added to store inventory ✅", medicine });
+    const formattedItem = formatInventoryItem(inventory);
+
+    res.status(201).json({ message: "Medicine added to store inventory ✅", medicine: formattedItem });
   } catch (err) {
     res.status(500).json({ message: "Server error ❌", error: err.message });
   }
 };
 
-// Update medicine — vendor only, own medicines only
+// Update medicine — vendor only, own store inventory only
 const updateMedicine = async (req, res) => {
   try {
-    const medicine = await Medicine.findOne({ _id: req.params.id, vendorId: req.vendor.id });
-    if (!medicine) return res.status(404).json({ message: "Medicine not found or unauthorized ❌" });
+    const inventory = await StoreInventory.findOne({ _id: req.params.id, vendorId: req.vendor.id });
+    if (!inventory) return res.status(404).json({ message: "Medicine item not found or unauthorized ❌" });
 
     const updateData = { ...req.body };
-    if (updateData.name) updateData.name = updateData.name.toLowerCase().trim();
-    if (updateData.companyName) updateData.companyName = updateData.companyName.trim();
-    if (updateData.dosageMg !== undefined) updateData.dosageMg = updateData.dosageMg.trim();
-    if (updateData.packSize !== undefined) updateData.packSize = updateData.packSize.trim();
-    if (updateData.price !== undefined) updateData.price = parseFloat(updateData.price);
-    if (updateData.mrp !== undefined) updateData.mrp = parseFloat(updateData.mrp);
+    const stockUpdate = {};
+
+    if (updateData.price !== undefined) stockUpdate.price = parseFloat(updateData.price);
     if (updateData.stockQuantity !== undefined) {
       const sq = parseInt(updateData.stockQuantity);
-      updateData.stockQuantity = isNaN(sq) ? 0 : sq;
-      updateData.inStock = updateData.stockQuantity > 0;
+      stockUpdate.stockQuantity = isNaN(sq) ? 0 : sq;
+      stockUpdate.inStock = stockUpdate.stockQuantity > 0;
+    }
+    if (updateData.inStock !== undefined) stockUpdate.inStock = Boolean(updateData.inStock);
+    if (updateData.expiryDate !== undefined) stockUpdate.expiryDate = updateData.expiryDate.trim();
+    if (updateData.batchNumber !== undefined) stockUpdate.batchNumber = updateData.batchNumber.trim();
+
+    const updatedInv = await StoreInventory.findByIdAndUpdate(req.params.id, stockUpdate, { new: true }).populate("medicineId");
+
+    // Optional catalog metadata update if requested
+    if (updatedInv.medicineId) {
+      const catalogUpdate = {};
+      if (updateData.name) catalogUpdate.name = updateData.name.toLowerCase().trim();
+      if (updateData.companyName) catalogUpdate.companyName = updateData.companyName.trim();
+      if (updateData.dosageMg !== undefined) catalogUpdate.dosageMg = updateData.dosageMg.trim();
+      if (updateData.packSize !== undefined) catalogUpdate.packSize = updateData.packSize.trim();
+      if (updateData.category) catalogUpdate.category = updateData.category;
+      if (updateData.composition !== undefined) catalogUpdate.composition = updateData.composition.trim();
+      if (updateData.mrp !== undefined) catalogUpdate.mrp = parseFloat(updateData.mrp);
+      if (updateData.requiresPrescription !== undefined) catalogUpdate.requiresPrescription = Boolean(updateData.requiresPrescription);
+
+      if (Object.keys(catalogUpdate).length > 0) {
+        await MasterMedicine.findByIdAndUpdate(updatedInv.medicineId._id, catalogUpdate);
+      }
     }
 
-    const updated = await Medicine.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    res.status(200).json({ message: "Medicine updated ✅", medicine: updated });
+    const finalInv = await StoreInventory.findById(req.params.id).populate("medicineId").lean();
+    const formatted = formatInventoryItem(finalInv);
+
+    res.status(200).json({ message: "Medicine inventory updated ✅", medicine: formatted });
   } catch (err) {
     res.status(500).json({ message: "Server error ❌", error: err.message });
   }
 };
 
-// Delete medicine — vendor only, own medicines only
+// Delete medicine — vendor only, own inventory only
 const deleteMedicine = async (req, res) => {
   try {
-    const medicine = await Medicine.findOne({ _id: req.params.id, vendorId: req.vendor.id });
-    if (!medicine) return res.status(404).json({ message: "Medicine not found or unauthorized ❌" });
+    const inventory = await StoreInventory.findOne({ _id: req.params.id, vendorId: req.vendor.id });
+    if (!inventory) return res.status(404).json({ message: "Medicine inventory not found or unauthorized ❌" });
 
-    await Medicine.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Medicine deleted ✅" });
+    await StoreInventory.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Medicine inventory item removed ✅" });
   } catch (err) {
     res.status(500).json({ message: "Server error ❌", error: err.message });
   }
@@ -554,5 +641,3 @@ module.exports = {
   updateMedicine,
   deleteMedicine,
 };
-
-

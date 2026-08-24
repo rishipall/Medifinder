@@ -1,6 +1,6 @@
 const Admin = require("../models/Admin");
 const Vendor = require("../models/Vendor");
-const Medicine = require("../models/Medicine");
+const StoreInventory = require("../models/StoreInventory");
 const Settings = require("../models/Settings");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -50,7 +50,7 @@ const getAllStores = async (req, res) => {
 
     // Attach medicine count to each store
     const storeIds = stores.map((s) => s._id);
-    const medicineCounts = await Medicine.aggregate([
+    const medicineCounts = await StoreInventory.aggregate([
       { $match: { vendorId: { $in: storeIds } } },
       { $group: { _id: "$vendorId", count: { $sum: 1 } } },
     ]);
@@ -187,8 +187,8 @@ const deleteStoreByAdmin = async (req, res) => {
       return res.status(404).json({ message: "Medical Store not found ❌" });
     }
 
-    // Delete all medicines belonging to this store
-    await Medicine.deleteMany({ vendorId: store._id });
+    // Delete all inventory belonging to this store
+    await StoreInventory.deleteMany({ vendorId: store._id });
 
     // Delete the store itself
     await Vendor.findByIdAndDelete(store._id);

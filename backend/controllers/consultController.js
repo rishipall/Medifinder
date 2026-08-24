@@ -1,5 +1,6 @@
 const https = require("https");
-const Medicine = require("../models/Medicine");
+const MasterMedicine = require("../models/MasterMedicine");
+const StoreInventory = require("../models/StoreInventory");
 
 // Clinical Expert Fallback Engine
 const generateClinicalFallback = (symptoms = [], duration = "1-2 Days", severity = "Moderate", additionalInfo = "") => {
@@ -201,14 +202,25 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
       const checkedMedicines = await Promise.all(
         evalResult.suggestedMedicines.map(async (med) => {
           try {
-            const dbMatch = await Medicine.findOne({
-              name: { $regex: med.name.trim(), $options: "i" },
-              inStock: true
+            const masterMatch = await MasterMedicine.findOne({
+              $or: [
+                { name: { $regex: med.name.trim(), $options: "i" } },
+                { brandName: { $regex: med.name.trim(), $options: "i" } },
+              ]
             }).lean();
+
+            let invMatch = null;
+            if (masterMatch) {
+              invMatch = await StoreInventory.findOne({
+                medicineId: masterMatch._id,
+                inStock: true
+              }).lean();
+            }
+
             return {
               ...med,
-              inDatabase: !!dbMatch,
-              priceInDb: dbMatch ? dbMatch.price : null
+              inDatabase: !!invMatch,
+              priceInDb: invMatch ? invMatch.price : null
             };
           } catch (dbErr) {
             return {

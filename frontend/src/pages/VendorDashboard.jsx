@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-
+import {Link} from "react-router-dom";
 const VendorDashboard = () => {
   const { vendor } = useAuth();
   const navigate = useNavigate();
@@ -216,6 +216,16 @@ const VendorDashboard = () => {
             <span>{vendor?.storeName}</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">High-density data table & pagination engine designed for large pharmacy inventories.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            to="/vendor/profile"
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md"
+          >
+            <i className="fa-solid fa-id-card text-teal-400"></i>
+            <span>Edit Store Profile</span>
+          </Link>
         </div>
       </div>
 

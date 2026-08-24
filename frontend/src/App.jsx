@@ -6,6 +6,7 @@ import StoreDetail from "./pages/StoreDetail";
 import VendorLogin from "./pages/VendorLogin";
 import VendorRegister from "./pages/VendorRegister";
 import VendorDashboard from "./pages/VendorDashboard";
+import VendorProfile from "./pages/VendorProfile";
 import Consult from "./pages/Consult";
 import About from "./pages/About";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
@@ -24,12 +25,12 @@ function App() {
         <Route path="/vendor/login" element={<VendorLogin />} />
         <Route path="/vendor/register" element={<VendorRegister />} />
         <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+        <Route path="/vendor/profile" element={<VendorProfile />} />
         <Route path="/admin/login" element={<SuperAdminLogin />} />
         <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
 
 export default App;

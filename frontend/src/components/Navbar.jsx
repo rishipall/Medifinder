@@ -52,42 +52,46 @@ const Navbar = () => {
             <span>Home</span>
           </Link>
 
-          <Link
-            to="/consult"
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              isActive("/consult")
-                ? "text-teal-400 bg-slate-800 shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-            }`}
-          >
-            <i className="fa-solid fa-user-doctor text-xs text-teal-400"></i>
-            <span>AI Consult</span>
-            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-          </Link>
+          {!vendor && (
+            <>
+              <Link
+                to="/consult"
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isActive("/consult")
+                    ? "text-teal-400 bg-slate-800 shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                }`}
+              >
+                <i className="fa-solid fa-user-doctor text-xs text-teal-400"></i>
+                <span>AI Consult</span>
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+              </Link>
 
-          <Link
-            to="/search"
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              isActive("/search")
-                ? "text-teal-400 bg-slate-800 shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-            }`}
-          >
-            <i className="fa-solid fa-magnifying-glass text-xs"></i>
-            <span>Search Medicine</span>
-          </Link>
+              <Link
+                to="/search"
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isActive("/search")
+                    ? "text-teal-400 bg-slate-800 shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                }`}
+              >
+                <i className="fa-solid fa-magnifying-glass text-xs"></i>
+                <span>Search Medicine</span>
+              </Link>
 
-          <Link
-            to="/about"
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              isActive("/about")
-                ? "text-teal-400 bg-slate-800 shadow-sm"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-            }`}
-          >
-            <i className="fa-solid fa-circle-info text-xs"></i>
-            <span>About Us</span>
-          </Link>
+              <Link
+                to="/about"
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isActive("/about")
+                    ? "text-teal-400 bg-slate-800 shadow-sm"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                }`}
+              >
+                <i className="fa-solid fa-circle-info text-xs"></i>
+                <span>About Us</span>
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Desktop Right Auth Controls */}
@@ -111,10 +115,18 @@ const Navbar = () => {
 
               <Link
                 to="/vendor/dashboard"
-                className="px-4 py-2 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-bold hover:bg-teal-500/30 transition-all flex items-center gap-2"
+                className="px-3.5 py-2 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-bold hover:bg-teal-500/30 transition-all flex items-center gap-1.5"
               >
                 <i className="fa-solid fa-chart-line"></i>
                 <span>Dashboard</span>
+              </Link>
+
+              <Link
+                to="/vendor/profile"
+                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <i className="fa-solid fa-id-card text-teal-400"></i>
+                <span>Profile</span>
               </Link>
 
               <button
@@ -186,46 +198,50 @@ const Navbar = () => {
               <span>Home</span>
             </Link>
 
-            <Link
-              to="/consult"
-              className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                isActive("/consult")
-                  ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
-                  : "text-slate-300 hover:bg-slate-900"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <i className="fa-solid fa-user-doctor text-teal-400 w-5"></i>
-                <span>AI Consult</span>
-              </div>
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">
-                AI Powered
-              </span>
-            </Link>
+            {!vendor && (
+              <>
+                <Link
+                  to="/consult"
+                  className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive("/consult")
+                      ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
+                      : "text-slate-300 hover:bg-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <i className="fa-solid fa-user-doctor text-teal-400 w-5"></i>
+                    <span>AI Consult</span>
+                  </div>
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                    AI Powered
+                  </span>
+                </Link>
 
-            <Link
-              to="/search"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                isActive("/search")
-                  ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
-                  : "text-slate-300 hover:bg-slate-900"
-              }`}
-            >
-              <i className="fa-solid fa-magnifying-glass text-teal-400 w-5"></i>
-              <span>Search Medicine</span>
-            </Link>
+                <Link
+                  to="/search"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive("/search")
+                      ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
+                      : "text-slate-300 hover:bg-slate-900"
+                  }`}
+                >
+                  <i className="fa-solid fa-magnifying-glass text-teal-400 w-5"></i>
+                  <span>Search Medicine</span>
+                </Link>
 
-            <Link
-              to="/about"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                isActive("/about")
-                  ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
-                  : "text-slate-300 hover:bg-slate-900"
-              }`}
-            >
-              <i className="fa-solid fa-circle-info text-teal-400 w-5"></i>
-              <span>About Us</span>
-            </Link>
+                <Link
+                  to="/about"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive("/about")
+                      ? "text-teal-400 bg-teal-500/10 border border-teal-500/30"
+                      : "text-slate-300 hover:bg-slate-900"
+                  }`}
+                >
+                  <i className="fa-solid fa-circle-info text-teal-400 w-5"></i>
+                  <span>About Us</span>
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="border-t border-slate-800 pt-3 space-y-2">
@@ -252,6 +268,14 @@ const Navbar = () => {
                 >
                   <i className="fa-solid fa-chart-line w-5"></i>
                   <span>Vendor Dashboard</span>
+                </Link>
+
+                <Link
+                  to="/vendor/profile"
+                  className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 text-xs font-bold"
+                >
+                  <i className="fa-solid fa-id-card text-teal-400 w-5"></i>
+                  <span>Store Profile</span>
                 </Link>
 
                 <button
