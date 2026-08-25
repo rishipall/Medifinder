@@ -53,12 +53,10 @@ const sendEmail = async (email, subject, otpCode) => {
   }
 
   try {
-    // Configure robust SMTP Transporter forcing IPv4 (family: 4) to fix Render IPv6 ENETUNREACH errors
+    // Configure robust Gmail Transporter with family: 4 to force IPv4 and prevent IPv6 ENETUNREACH errors
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT || "587"), // Port 587 (STARTTLS)
-      secure: false, // Must be false for 587 with STARTTLS
-      family: 4, // 🚀 FORCE IPv4 CONNECTION (Prevents Render IPv6 ENETUNREACH 2607:f8b0... errors)
+      service: "gmail",
+      family: 4, // 🚀 FORCE IPv4 (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
       auth: {
         user: emailUser,
         pass: emailPass, // 16-character Google App Password
