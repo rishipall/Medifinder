@@ -53,9 +53,12 @@ const sendEmail = async (email, subject, otpCode) => {
   }
 
   try {
-    // Configure robust Gmail Transporter with family: 4 to force IPv4 and prevent IPv6 ENETUNREACH errors
+    // Configure Gmail Port 587 STARTTLS with family: 4 (Port 465 is blocked on Render datacenter firewalls)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"), // Port 587 (STARTTLS - allowed by Render)
+      secure: false, // Must be false for 587 with STARTTLS
+      requireTLS: true,
       family: 4, // 🚀 FORCE IPv4 (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
       auth: {
         user: emailUser,
@@ -64,9 +67,9 @@ const sendEmail = async (email, subject, otpCode) => {
       tls: {
         rejectUnauthorized: false,
       },
-      connectionTimeout: 10000, // 10s timeout
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
+      connectionTimeout: 15000, // 15s timeout
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
     });
 
     const htmlContent = `
