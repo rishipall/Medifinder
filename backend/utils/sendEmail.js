@@ -1,12 +1,12 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
-dotenv.config(); // Ensures fresh .env environment variables are loaded
+dotenv.config();
 
 const fs = require("fs");
 const path = require("path");
 
 /**
- * Sends Email OTP via Nodemailer with terminal console debug mode fallback.
+ * Sends Email OTP via Nodemailer with terminal console fallback for local dev.
  * @param {string} email - Recipient email address
  * @param {string} subject - Email subject title
  * @param {string} otpCode - 6-digit OTP code
@@ -15,7 +15,7 @@ const path = require("path");
 const sendEmail = async (email, subject, otpCode) => {
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  // Read directly from backend/.env file to ensure fresh credentials even if process.env is cached
+  // Read environment variables (supports Render / Vercel process.env as well as local .env)
   let emailUser = (process.env.EMAIL_USER || "").trim();
   let emailPass = (process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
 
@@ -27,26 +27,38 @@ const sendEmail = async (email, subject, otpCode) => {
       if (envConfig.EMAIL_PASS) emailPass = envConfig.EMAIL_PASS.replace(/\s+/g, "").trim();
     }
   } catch (e) {
-    // fallback to process.env if reading file fails
+    // fallback to process.env
   }
 
-  // ALWAYS log prominent debug message to backend terminal console
+  // Debug log on server console
   console.log("\n=======================================================");
   console.log(`📧 [EMAIL OTP DEBUG LOG]`);
-  console.log(`   From Sender Account : ${emailUser || "Not Configured"}`);
+  console.log(`   From Sender Account : ${emailUser || "Not Configured (Missing EMAIL_USER)"}`);
   console.log(`   Recipient Email     : ${cleanEmail}`);
   console.log(`   Verification OTP    : ${otpCode}`);
   console.log("=======================================================\n");
 
+  const isProduction = process.env.NODE_ENV === "production" || process.env.RENDER === "true";
+
   if (!emailUser || !emailPass) {
-    console.warn("⚠️ EMAIL_USER or EMAIL_PASS is not configured in Environment Variables (or backend/.env).");
-    console.warn("💡 Using Terminal Console Debug OTP mode (copy the 6-digit code printed above for testing).");
+    const missingMsg = "⚠️ EMAIL_USER or EMAIL_PASS is not configured in Environment Variables. Please add EMAIL_USER and EMAIL_PASS (Google App Password) in your Render Dashboard settings.";
+    console.warn(missingMsg);
+    
+    if (isProduction) {
+      throw new Error("Email service is not configured on production host. Please add EMAIL_USER and EMAIL_PASS in Render Environment Variables.");
+    }
+    
+    console.warn("💡 Local Dev Mode: Copy the 6-digit OTP code printed in terminal above to verify.");
     return true;
   }
 
   try {
+    // Configure robust SMTP Transporter forcing IPv4 (family: 4) to fix Render IPv6 ENETUNREACH errors
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"), // Port 587 (STARTTLS)
+      secure: false, // Must be false for 587 with STARTTLS
+      family: 4, // 🚀 FORCE IPv4 CONNECTION (Prevents Render IPv6 ENETUNREACH 2607:f8b0... errors)
       auth: {
         user: emailUser,
         pass: emailPass, // 16-character Google App Password
@@ -54,6 +66,9 @@ const sendEmail = async (email, subject, otpCode) => {
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 10000, // 10s timeout
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     const htmlContent = `
@@ -85,9 +100,17 @@ const sendEmail = async (email, subject, otpCode) => {
     console.log(`✅ Email OTP sent successfully via Nodemailer to ${cleanEmail}`);
     return true;
   } catch (err) {
-    console.warn(`⚠️ Nodemailer error (${err.message}). Defaulting to Terminal Debug OTP mode.`);
+    console.error(`❌ Nodemailer dispatch failed for ${cleanEmail}:`, err.message);
+
+    // In production or when credentials are set, throw error so API returns clear error status to user
+    if (isProduction || (emailUser && emailPass)) {
+      throw new Error(`Email delivery failed: ${err.message}. Ensure Google App Password is correct and 2-Step Verification is active.`);
+    }
+
+    console.warn("⚠️ Defaulting to Terminal Debug OTP mode for local development.");
     return true;
   }
 };
 
 module.exports = sendEmail;
+
