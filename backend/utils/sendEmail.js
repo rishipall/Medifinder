@@ -1,5 +1,9 @@
 const nodemailer = require("nodemailer");
-require("dotenv").config(); // Ensures fresh .env environment variables are loaded
+const dotenv = require("dotenv");
+dotenv.config(); // Ensures fresh .env environment variables are loaded
+
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Sends Email OTP via Nodemailer with terminal console debug mode fallback.
@@ -11,17 +15,28 @@ require("dotenv").config(); // Ensures fresh .env environment variables are load
 const sendEmail = async (email, subject, otpCode) => {
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  // Re-read process.env on execution to guarantee latest .env values
-  const emailUser = (process.env.EMAIL_USER || "").trim();
-  const emailPass = (process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
+  // Read directly from backend/.env file to ensure fresh credentials even if process.env is cached
+  let emailUser = (process.env.EMAIL_USER || "").trim();
+  let emailPass = (process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
+
+  try {
+    const envPath = path.resolve(__dirname, "../.env");
+    if (fs.existsSync(envPath)) {
+      const envConfig = dotenv.parse(fs.readFileSync(envPath));
+      if (envConfig.EMAIL_USER) emailUser = envConfig.EMAIL_USER.trim();
+      if (envConfig.EMAIL_PASS) emailPass = envConfig.EMAIL_PASS.replace(/\s+/g, "").trim();
+    }
+  } catch (e) {
+    // fallback to process.env if reading file fails
+  }
 
   // ALWAYS log prominent debug message to backend terminal console
-  // console.log("\n=======================================================");
-  // console.log(`📧 [EMAIL OTP DEBUG LOG]`);
-  // console.log(`   From Sender Account: ${emailUser || "Not Configured"}`);
-  // console.log(`   Recipient Email    : ${cleanEmail}`);
-  // console.log(`   Verification OTP   : ${otpCode}`);
-  // console.log("=======================================================\n");
+  console.log("\n=======================================================");
+  console.log(`📧 [EMAIL OTP DEBUG LOG]`);
+  console.log(`   From Sender Account : ${emailUser || "Not Configured"}`);
+  console.log(`   Recipient Email     : ${cleanEmail}`);
+  console.log(`   Verification OTP    : ${otpCode}`);
+  console.log("=======================================================\n");
 
   if (!emailUser || !emailPass) {
     console.warn("⚠️ EMAIL_USER or EMAIL_PASS is not configured in backend/.env.");
@@ -31,12 +46,13 @@ const sendEmail = async (email, subject, otpCode) => {
 
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // Use SSL port 465
+      service: "gmail",
       auth: {
         user: emailUser,
         pass: emailPass, // 16-character Google App Password
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 
