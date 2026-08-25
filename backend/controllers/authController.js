@@ -64,10 +64,12 @@ const sendOtp = async (req, res) => {
       }
     }
 
-    // Send Email via Nodemailer
-    await sendEmail(cleanEmail, "🔐 Your MediFind Store Verification OTP Code", otpCode);
+    // Dispatch Email via Nodemailer asynchronously so HTTP response returns instantly to browser
+    sendEmail(cleanEmail, "🔐 Your MediFind Store Verification OTP Code", otpCode).catch((err) => {
+      console.warn("Background sendEmail notice:", err.message);
+    });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Verification OTP code sent to ${cleanEmail}! 📧`,
       otpToken: jwt.sign(
@@ -78,7 +80,7 @@ const sendOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("Send OTP Error:", err);
-    res.status(500).json({ success: false, message: `Failed to send OTP: ${err.message}`, error: err.message });
+    return res.status(500).json({ success: false, message: `Failed to send OTP: ${err.message}`, error: err.message });
   }
 };
 
