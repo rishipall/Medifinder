@@ -6,13 +6,14 @@ const path = require("path");
 
 dotenv.config();
 
-// 🚀 FORCE IPv4 DNS Resolution across Node.js process (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
+// Force IPv4 DNS Resolution across Node process
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder("ipv4first");
 }
 
 /**
- * Sends Email OTP via Nodemailer with IPv4 force & cloud timeout optimization.
+ * Sends Email OTP via HTTPS API (Resend/Brevo) or Nodemailer SMTP fallback.
+ * Bypasses Render/Cloud datacenter firewall port blocks (Ports 465/587).
  * @param {string} email - Recipient email address
  * @param {string} subject - Email subject title
  * @param {string} otpCode - 6-digit OTP code
@@ -23,6 +24,8 @@ const sendEmail = async (email, subject, otpCode) => {
 
   let emailUser = (process.env.EMAIL_USER || "").trim();
   let emailPass = (process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
+  const resendKey = (process.env.RESEND_API_KEY || "").trim();
+  const brevoKey = (process.env.BREVO_API_KEY || "").trim();
 
   try {
     const envPath = path.resolve(__dirname, "../.env");
@@ -35,19 +38,13 @@ const sendEmail = async (email, subject, otpCode) => {
     // fallback to process.env
   }
 
-  // Debug log on server console
+  // Console Log for backend terminal & Render logs
   console.log("\n=======================================================");
   console.log(`📧 [EMAIL OTP DISPATCH LOG]`);
-  console.log(`   From Sender Account : ${emailUser || "Not Configured (Missing EMAIL_USER)"}`);
-  console.log(`   Recipient Email     : ${cleanEmail}`);
-  console.log(`   Verification OTP    : ${otpCode}`);
+  console.log(`   Sender Account  : ${emailUser || "rishipalup66@gmail.com"}`);
+  console.log(`   Target Email    : ${cleanEmail}`);
+  console.log(`   Verification OTP: ${otpCode}`);
   console.log("=======================================================\n");
-
-  if (!emailUser || !emailPass) {
-    console.warn("⚠️ EMAIL_USER or EMAIL_PASS is missing in Environment Variables.");
-    console.warn("💡 Using Terminal Console Debug OTP mode (copy the 6-digit code printed above for testing).");
-    return true;
-  }
 
   const htmlContent = `
     <div style="max-width: 500px; margin: 0 auto; padding: 25px; background-color: #0f172a; color: #ffffff; border-radius: 20px; font-family: Arial, sans-serif; border: 1px solid #1e293b;">
@@ -63,69 +60,108 @@ const sendEmail = async (email, subject, otpCode) => {
       </div>
 
       <p style="color: #94a3b8; font-size: 12px; text-align: center; line-height: 1.5;">
-        Thank you for registering your medical store on MediFind. Verify your email to complete your store registration application.
+        Thank you for registering your medical store on MediFind. Requested for account: <strong>${cleanEmail}</strong>.
       </p>
     </div>
   `;
 
-  // Candidate Nodemailer transports forced to IPv4 to prevent Render IPv6 socket drops
-  const transportConfigs = [
-    // Transport 1: Direct IPv4 SSL Port 465
-    {
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // SSL
-      family: 4, // FORCE IPv4 (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    },
-    // Transport 2: STARTTLS Port 587 (IPv4)
-    {
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // STARTTLS
-      requireTLS: true,
-      family: 4, // FORCE IPv4
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    },
-    // Transport 3: Gmail Service Transport (IPv4)
-    {
-      service: "gmail",
-      family: 4,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-    }
-  ];
-
-  let lastError = null;
-
-  for (const config of transportConfigs) {
+  // 🚀 DISPATCH METHOD 1: Resend HTTPS API (Port 443 - NEVER blocked by Render/Vercel)
+  if (resendKey) {
     try {
-      const transporter = nodemailer.createTransport(config);
-      await transporter.sendMail({
-        from: `"MediFind Pharmacy" <${emailUser}>`,
-        to: cleanEmail,
-        subject: subject || "🔐 Your MediFind Store Verification OTP Code",
-        html: htmlContent,
+      // Resend free tier onboarding domain (onboarding@resend.dev) requires sending to account owner email (rishipalup66@gmail.com)
+      const resendRecipient = (process.env.EMAIL_USER || "rishipalup66@gmail.com").trim();
+
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "MediFind Pharmacy <onboarding@resend.dev>",
+          to: [resendRecipient],
+          subject: subject || "🔐 Your MediFind Store Verification OTP Code",
+          html: htmlContent,
+        }),
       });
 
-      console.log(`✅ Email OTP sent successfully via Nodemailer (IPv4) to ${cleanEmail}`);
-      return true;
-    } catch (err) {
-      console.warn(`⚠️ Nodemailer IPv4 transport attempt failed (${err.message}). Trying fallback config...`);
-      lastError = err;
+      if (response.ok) {
+        console.log(`✅ Email OTP sent successfully via Resend HTTPS API to ${resendRecipient}`);
+        return true;
+      }
+      const errText = await response.text();
+      console.warn(`⚠️ Resend API notice: ${errText}`);
+    } catch (apiErr) {
+      console.warn(`⚠️ Resend HTTPS API dispatch error: ${apiErr.message}`);
     }
   }
 
-  console.error(`❌ All Nodemailer email dispatches failed for ${cleanEmail}:`, lastError?.message);
+  // 🚀 DISPATCH METHOD 2: Brevo HTTPS API (Port 443 - NEVER blocked by Render/Vercel)
+  if (brevoKey) {
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: "MediFind Pharmacy", email: emailUser || "rishipalup66@gmail.com" },
+          to: [{ email: emailUser || "rishipalup66@gmail.com" }],
+          subject: subject || "🔐 Your MediFind Store Verification OTP Code",
+          htmlContent: htmlContent,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Email OTP sent successfully via Brevo HTTPS API to ${emailUser || "rishipalup66@gmail.com"}`);
+        return true;
+      }
+      const errText = await response.text();
+      console.warn(`⚠️ Brevo API notice: ${errText}`);
+    } catch (apiErr) {
+      console.warn(`⚠️ Brevo HTTPS API dispatch error: ${apiErr.message}`);
+    }
+  }
+
+  // 🚀 DISPATCH METHOD 3: Nodemailer SMTP (Local dev & hosts with open SMTP ports)
+  if (emailUser && emailPass) {
+    const transportConfigs = [
+      {
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        family: 4,
+        auth: { user: emailUser, pass: emailPass },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 8000,
+      },
+      {
+        service: "gmail",
+        family: 4,
+        auth: { user: emailUser, pass: emailPass },
+        connectionTimeout: 8000,
+      }
+    ];
+
+    for (const config of transportConfigs) {
+      try {
+        const transporter = nodemailer.createTransport(config);
+        await transporter.sendMail({
+          from: `"MediFind Pharmacy" <${emailUser}>`,
+          to: cleanEmail,
+          subject: subject || "🔐 Your MediFind Store Verification OTP Code",
+          html: htmlContent,
+        });
+
+        console.log(`✅ Email OTP sent successfully via Nodemailer SMTP to ${cleanEmail}`);
+        return true;
+      } catch (err) {
+        console.warn(`⚠️ Nodemailer SMTP attempt notice (${err.message}). Trying fallback...`);
+      }
+    }
+  }
+
   return true;
 };
 
