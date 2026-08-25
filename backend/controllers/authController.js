@@ -15,7 +15,7 @@ const generateAdminToken = (id) => {
   return jwt.sign({ id, role: "superadmin" }, getJwtSecret(), { expiresIn: "7d" });
 };
 
-// 📧 1. Send Email OTP to Vendor Email (with Email & Phone uniqueness check)
+// 📧 1. Send Email OTP to Vendor Email
 const sendOtp = async (req, res) => {
   const { email, phone } = req.body;
 
@@ -64,10 +64,12 @@ const sendOtp = async (req, res) => {
       }
     }
 
-    // Dispatch Email via Nodemailer asynchronously so HTTP response returns instantly to browser
-    sendEmail(cleanEmail, "🔐 Your MediFind Store Verification OTP Code", otpCode).catch((err) => {
-      console.warn("Background sendEmail notice:", err.message);
-    });
+    // Await Nodemailer delivery so cloud containers (Render) do not suspend the SMTP socket process
+    try {
+      await sendEmail(cleanEmail, "🔐 Your MediFind Store Verification OTP Code", otpCode);
+    } catch (mailErr) {
+      console.warn("sendEmail delivery warning:", mailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -120,7 +122,7 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-// 🏪 3. Register Vendor Store Account (Strict Email & Phone Uniqueness)
+// 🏪 3. Register Vendor Store Account
 const registerVendor = async (req, res) => {
   const { name, email, password, storeName, phone, address, city, lat, lng, isVerified } = req.body;
   try {
