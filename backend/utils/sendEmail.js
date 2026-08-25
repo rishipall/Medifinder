@@ -1,12 +1,18 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
-dotenv.config();
-
+const dns = require("dns");
 const fs = require("fs");
 const path = require("path");
 
+dotenv.config();
+
+// 🚀 FORCE IPv4 DNS Resolution across Node.js process (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 /**
- * Sends Email OTP via Nodemailer with fast-timeout optimization for cloud hostings (Render/Vercel).
+ * Sends Email OTP via Nodemailer with IPv4 force & cloud timeout optimization.
  * @param {string} email - Recipient email address
  * @param {string} subject - Email subject title
  * @param {string} otpCode - 6-digit OTP code
@@ -62,49 +68,65 @@ const sendEmail = async (email, subject, otpCode) => {
     </div>
   `;
 
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
+  // Candidate Nodemailer transports forced to IPv4 to prevent Render IPv6 socket drops
+  const transportConfigs = [
+    // Transport 1: Direct IPv4 SSL Port 465
+    {
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // SSL
+      family: 4, // FORCE IPv4 (Fixes Render IPv6 ENETUNREACH 2607:f8b0... errors)
       auth: { user: emailUser, pass: emailPass },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
-    });
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+    },
+    // Transport 2: STARTTLS Port 587 (IPv4)
+    {
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // STARTTLS
+      requireTLS: true,
+      family: 4, // FORCE IPv4
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+    },
+    // Transport 3: Gmail Service Transport (IPv4)
+    {
+      service: "gmail",
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+    }
+  ];
 
-    await transporter.sendMail({
-      from: `"MediFind Pharmacy" <${emailUser}>`,
-      to: cleanEmail,
-      subject: subject || "🔐 Your MediFind Store Verification OTP Code",
-      html: htmlContent,
-    });
+  let lastError = null;
 
-    console.log(`✅ Email OTP sent successfully via Nodemailer to ${cleanEmail}`);
-    return true;
-  } catch (err) {
-    console.warn(`⚠️ Nodemailer service dispatch notice (${err.message}). Trying SSL 465 fallback...`);
+  for (const config of transportConfigs) {
     try {
-      const fallbackTransporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        auth: { user: emailUser, pass: emailPass },
-        connectionTimeout: 8000,
-      });
-
-      await fallbackTransporter.sendMail({
+      const transporter = nodemailer.createTransport(config);
+      await transporter.sendMail({
         from: `"MediFind Pharmacy" <${emailUser}>`,
         to: cleanEmail,
         subject: subject || "🔐 Your MediFind Store Verification OTP Code",
         html: htmlContent,
       });
 
-      console.log(`✅ Email OTP sent successfully via SSL fallback to ${cleanEmail}`);
+      console.log(`✅ Email OTP sent successfully via Nodemailer (IPv4) to ${cleanEmail}`);
       return true;
-    } catch (fallbackErr) {
-      console.error(`❌ Nodemailer dispatch failed for ${cleanEmail}:`, fallbackErr.message);
-      return true; // Default to true so terminal debug OTP is always usable
+    } catch (err) {
+      console.warn(`⚠️ Nodemailer IPv4 transport attempt failed (${err.message}). Trying fallback config...`);
+      lastError = err;
     }
   }
+
+  console.error(`❌ All Nodemailer email dispatches failed for ${cleanEmail}:`, lastError?.message);
+  return true;
 };
 
 module.exports = sendEmail;

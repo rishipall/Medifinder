@@ -1,3 +1,8 @@
+const dns = require("dns");
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first"); // 🚀 FORCE IPv4 DNS Resolution across entire Node.js server (Fixes Render IPv6 ENETUNREACH errors)
+}
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
