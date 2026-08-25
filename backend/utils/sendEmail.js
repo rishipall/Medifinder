@@ -39,7 +39,7 @@ const sendEmail = async (email, subject, otpCode) => {
   console.log("=======================================================\n");
 
   if (!emailUser || !emailPass) {
-    console.warn("⚠️ EMAIL_USER or EMAIL_PASS is not configured in backend/.env.");
+    console.warn("⚠️ EMAIL_USER or EMAIL_PASS is not configured in Environment Variables (or backend/.env).");
     console.warn("💡 Using Terminal Console Debug OTP mode (copy the 6-digit code printed above for testing).");
     return true;
   }
