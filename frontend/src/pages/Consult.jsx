@@ -60,7 +60,8 @@ const Consult = () => {
       }
     } catch (err) {
       console.error("Consultation error:", err);
-      setError("Network or server error while processing AI evaluation.");
+      const serverMsg = err.response?.data?.message;
+      setError(serverMsg || "Network or server error while processing AI evaluation.");
     } finally {
       setLoading(false);
     }

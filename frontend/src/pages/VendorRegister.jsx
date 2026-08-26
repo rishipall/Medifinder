@@ -99,7 +99,8 @@ const VendorRegister = () => {
         setError(data.message || "Could not send email verification OTP.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send email OTP. Please check your email address.");
+      const errMsg = err.response?.data?.message || (err.message === "Network Error" ? "Network Error: Cannot reach MediFind backend server. If accessing from a mobile network or different Wi-Fi, ensure your backend server is deployed or using a public URL." : "Failed to send email OTP. Please check your email address.");
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,8 @@ const VendorRegister = () => {
         setOtpError("✅ A new verification code has been sent to your email!");
       }
     } catch (err) {
-      setOtpError(err.response?.data?.message || "Failed to resend OTP.");
+      const errMsg = err.response?.data?.message || (err.message === "Network Error" ? "Network Error: Cannot reach backend server." : "Failed to resend OTP.");
+      setOtpError(errMsg);
     } finally {
       setOtpLoading(false);
     }

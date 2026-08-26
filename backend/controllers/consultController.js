@@ -96,6 +96,10 @@ const generateClinicalFallback = (symptoms = [], duration = "1-2 Days", severity
   };
 };
 
+const escapeRegex = (text = "") => {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 const callGeminiAPI = (apiKey, prompt) => {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({
@@ -109,7 +113,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     const options = {
       hostname: "generativelanguage.googleapis.com",
       port: 443,
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      path: `/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey}`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -126,7 +130,8 @@ const callGeminiAPI = (apiKey, prompt) => {
             const parsed = JSON.parse(data);
             const textResponse = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
             if (textResponse) {
-              const jsonResult = JSON.parse(textResponse);
+              const cleanedText = textResponse.replace(/^```(json)?\s*/i, "").replace(/\s*```$/, "").trim();
+              const jsonResult = JSON.parse(cleanedText);
               resolve(jsonResult);
             } else {
               reject(new Error("No candidate text in Gemini response"));
@@ -141,7 +146,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     });
 
     req.on("error", (e) => reject(e));
-    req.setTimeout(8000, () => {
+    req.setTimeout(6000, () => {
       req.destroy();
       reject(new Error("Gemini API request timed out"));
     });
@@ -191,6 +196,7 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
       try {
         evalResult = await callGeminiAPI(apiKey, prompt);
       } catch (geminiError) {
+        console.warn("Gemini API evaluation failed or timed out. Falling back to clinical rule engine:", geminiError.message);
         evalResult = generateClinicalFallback(symptoms, duration, severity, additionalInfo);
       }
     } else {
@@ -198,14 +204,32 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
     }
 
     // Strictly cross-reference database: verify which suggested medicines exist in user's MongoDB database
-    if (evalResult && evalResult.suggestedMedicines) {
+    if (evalResult && Array.isArray(evalResult.suggestedMedicines)) {
       const checkedMedicines = await Promise.all(
         evalResult.suggestedMedicines.map(async (med) => {
+          const isObj = typeof med === "object" && med !== null;
+          const medName = isObj ? (med.name || "") : String(med);
+          const medPurpose = isObj ? (med.purpose || "") : "Remedy relief";
+          const medDosage = isObj ? (med.dosageInfo || "") : "";
+
+          if (!medName || !medName.trim()) {
+            return {
+              name: "General Health Remedy",
+              purpose: medPurpose,
+              dosageInfo: medDosage,
+              inDatabase: false,
+              priceInDb: null
+            };
+          }
+
+          const safeRegex = escapeRegex(medName.trim());
+
           try {
             const masterMatch = await MasterMedicine.findOne({
               $or: [
-                { name: { $regex: med.name.trim(), $options: "i" } },
-                { brandName: { $regex: med.name.trim(), $options: "i" } },
+                { name: { $regex: safeRegex, $options: "i" } },
+                { brandName: { $regex: safeRegex, $options: "i" } },
+                { composition: { $regex: safeRegex, $options: "i" } },
               ]
             }).lean();
 
@@ -218,13 +242,18 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
             }
 
             return {
-              ...med,
+              name: medName,
+              purpose: medPurpose,
+              dosageInfo: medDosage,
               inDatabase: !!invMatch,
               priceInDb: invMatch ? invMatch.price : null
             };
           } catch (dbErr) {
+            console.error("Error matching medicine in database:", dbErr);
             return {
-              ...med,
+              name: medName,
+              purpose: medPurpose,
+              dosageInfo: medDosage,
               inDatabase: false,
               priceInDb: null
             };
