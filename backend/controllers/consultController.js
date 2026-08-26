@@ -113,7 +113,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     const options = {
       hostname: "generativelanguage.googleapis.com",
       port: 443,
-      path: `/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey}`,
+      path: `/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -146,7 +146,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     });
 
     req.on("error", (e) => reject(e));
-    req.setTimeout(6000, () => {
+    req.setTimeout(12000, () => {
       req.destroy();
       reject(new Error("Gemini API request timed out"));
     });
