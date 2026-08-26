@@ -1,9 +1,9 @@
+const { Resend } = require("resend");
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const dns = require("dns");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 
 dotenv.config();
 
@@ -13,69 +13,22 @@ if (dns.setDefaultResultOrder) {
 }
 
 /**
- * Helper to dispatch HTTPS API request to Brevo (Sendinblue) using Node native https module.
- * Brevo allows sending 300 free emails/day to ANY recipient email address on Render!
- */
-const postBrevoApi = (apiKey, toEmail, senderEmail, htmlContent, subject) => {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      sender: { name: "MediFind Pharmacy", email: senderEmail || "noreply@medifind.com" },
-      to: [{ email: toEmail }],
-      subject: subject || "🔐 Your MediFind Store Verification OTP Code",
-      htmlContent: htmlContent,
-    });
-
-    const req = https.request(
-      "https://api.brevo.com/v3/smtp/email",
-      {
-        method: "POST",
-        headers: {
-          "api-key": apiKey,
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(postData),
-        },
-        timeout: 10000,
-      },
-      (res) => {
-        let responseBody = "";
-        res.on("data", (chunk) => {
-          responseBody += chunk;
-        });
-        res.on("end", () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({ ok: true, status: res.statusCode, body: responseBody });
-          } else {
-            resolve({ ok: false, status: res.statusCode, body: responseBody });
-          }
-        });
-      }
-    );
-
-    req.on("error", (err) => reject(err));
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("Brevo HTTPS timeout after 10s"));
-    });
-
-    req.write(postData);
-    req.end();
-  });
-};
-
-/**
- * Sends Email OTP directly to the exact Recipient Email typed by the user.
+ * Sends Email OTP using Resend API as primary delivery method,
+ * falling back to Nodemailer SMTP if Resend is not configured or fails.
  */
 const sendEmail = async (email, subject, otpCode) => {
   const cleanEmail = (email || "").toLowerCase().trim();
 
+  let resendApiKey = (process.env.RESEND_API_KEY || "").trim();
   let emailUser = (process.env.EMAIL_USER || "").trim();
   let emailPass = (process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
-  const brevoKey = (process.env.BREVO_API_KEY || "").trim();
 
+  // Safety fallback read directly from backend/.env file if process.env wasn't updated yet
   try {
     const envPath = path.resolve(__dirname, "../.env");
     if (fs.existsSync(envPath)) {
       const envConfig = dotenv.parse(fs.readFileSync(envPath));
+      if (envConfig.RESEND_API_KEY && !resendApiKey) resendApiKey = envConfig.RESEND_API_KEY.trim();
       if (envConfig.EMAIL_USER && !emailUser) emailUser = envConfig.EMAIL_USER.trim();
       if (envConfig.EMAIL_PASS && !emailPass) emailPass = envConfig.EMAIL_PASS.replace(/\s+/g, "").trim();
     }
@@ -86,7 +39,6 @@ const sendEmail = async (email, subject, otpCode) => {
   console.log("\n=======================================================");
   console.log(`📧 [EMAIL OTP DISPATCH LOG]`);
   console.log(`   Recipient Email : ${cleanEmail}`);
-  console.log(`   Sender Account  : ${emailUser || "MediFind System"}`);
   console.log(`   Verification OTP: ${otpCode}`);
   console.log("=======================================================\n");
 
@@ -109,22 +61,29 @@ const sendEmail = async (email, subject, otpCode) => {
     </div>
   `;
 
-  // 🚀 METHOD 1: Brevo HTTPS API (Sends directly to cleanEmail recipient)
-  if (brevoKey) {
+  // 🚀 PRIMARY METHOD: Resend API (Fast, Reliable, Bypasses Cloud Host SMTP Port Blocks)
+  if (resendApiKey) {
     try {
-      const brevoResult = await postBrevoApi(brevoKey, cleanEmail, emailUser, htmlContent, subject);
+      const resend = new Resend(resendApiKey);
+      const { data, error } = await resend.emails.send({
+        from: "MediFind Pharmacy <onboarding@resend.dev>",
+        to: [cleanEmail],
+        subject: subject || "🔐 Your MediFind Store Verification OTP Code",
+        html: htmlContent,
+      });
 
-      if (brevoResult.ok) {
-        console.log(`✅ Email OTP sent successfully via Brevo HTTPS API to ${cleanEmail}`);
+      if (!error && data) {
+        console.log(`✅ Email OTP sent successfully via Resend API to ${cleanEmail} (ID: ${data.id})`);
         return true;
       }
-      console.warn(`⚠️ Brevo API status ${brevoResult.status}: ${brevoResult.body}`);
-    } catch (apiErr) {
-      console.warn(`⚠️ Brevo HTTPS API error: ${apiErr.message}`);
+      
+      console.warn(`⚠️ Resend API notice: ${error ? error.message : "No data returned"}. Trying fallback...`);
+    } catch (resendErr) {
+      console.warn(`⚠️ Resend API exception: ${resendErr.message}. Trying fallback...`);
     }
   }
 
-  // 🚀 METHOD 2: Nodemailer SMTP (Sends directly to cleanEmail recipient)
+  // 🚀 FALLBACK METHOD: Nodemailer SMTP
   if (emailUser && emailPass) {
     const transportConfigs = [
       {
@@ -154,10 +113,10 @@ const sendEmail = async (email, subject, otpCode) => {
           html: htmlContent,
         });
 
-        console.log(`✅ Email OTP sent successfully via Nodemailer SMTP to ${cleanEmail}`);
+        console.log(`✅ Email OTP sent successfully via Nodemailer SMTP fallback to ${cleanEmail}`);
         return true;
       } catch (err) {
-        console.warn(`⚠️ Nodemailer SMTP attempt notice (${err.message}). Trying fallback...`);
+        console.warn(`⚠️ Nodemailer SMTP fallback notice (${err.message}).`);
       }
     }
   }
