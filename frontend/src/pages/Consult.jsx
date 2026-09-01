@@ -337,6 +337,118 @@ const Consult = () => {
             </div>
           )}
 
+          {/* Recommended Nearby Doctors & Clinics / Hospitals */}
+          {result.suggestedDoctors && result.suggestedDoctors.length > 0 && (
+            <div className="space-y-4 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-wider text-teal-400 uppercase flex items-center gap-2">
+                  <i className="fa-solid fa-user-doctor"></i>
+                  <span>Recommended Nearby Doctors & Hospitals / Clinics ({result.suggestedDoctors.length}):</span>
+                </span>
+                <span className="text-[11px] text-slate-400 font-semibold">Instant Call & WhatsApp</span>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {result.suggestedDoctors.map((doc) => (
+                  <div
+                    key={doc._id}
+                    className="p-5 rounded-2xl bg-slate-900/90 border border-teal-500/30 flex flex-col justify-between gap-4 hover:border-teal-400 transition-all shadow-lg"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-extrabold text-white text-base flex items-center gap-1.5">
+                            <i className="fa-solid fa-user-doctor text-teal-400 text-sm"></i>
+                            <span>{doc.name}</span>
+                          </h3>
+                          <div className="text-xs text-slate-300 font-semibold mt-0.5">{doc.degree}</div>
+                        </div>
+
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            ["Gov Hospital", "Semi Gov Hospital", "Big Hospital"].includes(doc.category)
+                              ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                              : "bg-teal-500/20 text-teal-300 border-teal-500/40"
+                          }`}
+                        >
+                          {doc.category}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-bold text-teal-300 flex items-center gap-1">
+                        <i className="fa-solid fa-hospital text-slate-400"></i>
+                        <span>{doc.hospitalName}</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {(doc.specialization || []).map((s, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-teal-200 border border-slate-700"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                        {doc.isGeneralPhysician && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                            General Physician
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-slate-400 pt-1">
+                        📍 <strong>{doc.city}</strong>: {doc.address}
+                      </div>
+
+                      {doc.clinicDetails && (
+                        <div className="text-[11px] text-slate-400 italic line-clamp-2">
+                          "{doc.clinicDetails}"
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Patient Communication Action Buttons */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-800">
+                      <a
+                        href={`tel:${doc.phone}`}
+                        className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        title="Direct Phone Call"
+                      >
+                        <i className="fa-solid fa-phone"></i>
+                        <span>Call Now</span>
+                      </a>
+
+                      <a
+                        href={`https://wa.me/${(doc.whatsapp || doc.phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(
+                          `Hello Dr. ${doc.name}, I consulted MediFind AI Triage and would like to schedule an appointment for ${doc.hospitalName}.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        title="WhatsApp Direct Chat"
+                      >
+                        <i className="fa-brands fa-whatsapp text-sm"></i>
+                        <span>WhatsApp</span>
+                      </a>
+
+                      {doc.lat && doc.lng && doc.lat !== 0 && (
+                        <a
+                          href={`https://maps.google.com/?q=${doc.lat},${doc.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold text-xs border border-slate-700 transition-all flex items-center justify-center"
+                          title="View on Maps"
+                        >
+                          <i className="fa-solid fa-map-location-dot"></i>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* When to see doctor */}
           {result.whenToSeeDoctor && (
             <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs leading-relaxed">

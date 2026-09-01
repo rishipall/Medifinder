@@ -124,7 +124,7 @@ const verifyOtp = async (req, res) => {
 
 // 🏪 3. Register Vendor Store Account
 const registerVendor = async (req, res) => {
-  const { name, email, password, storeName, phone, address, city, lat, lng, isVerified } = req.body;
+  const { name, email, password, storeName, phone, address, city, gstNumber, lat, lng, isVerified } = req.body;
   try {
     if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({
@@ -132,8 +132,17 @@ const registerVendor = async (req, res) => {
       });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    const cleanPhone = (phone || "").replace(/\s+/g, "").trim();
+    const cleanEmail = (email || "").toLowerCase().trim();
+    const cleanPhone = (phone || "").replace(/\D/g, "").trim();
+    const cleanGst = (gstNumber || "").toUpperCase().replace(/\s+/g, "").trim();
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return res.status(400).json({ message: "Please enter a valid numeric contact phone number (min 10 digits). ❌" });
+    }
+
+    if (cleanGst && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(cleanGst) && cleanGst.length !== 15) {
+      return res.status(400).json({ message: "Please enter a valid 15-character GSTIN number (e.g., 22AAAAA0000A1Z5). ❌" });
+    }
 
     // Check duplicate active store by email
     const existingEmail = await Vendor.findOne({ email: cleanEmail });
@@ -157,6 +166,7 @@ const registerVendor = async (req, res) => {
       existingEmail.phone = cleanPhone;
       existingEmail.address = address.trim();
       existingEmail.city = city.trim();
+      existingEmail.gstNumber = cleanGst;
       existingEmail.lat = parseFloat(lat) || 0;
       existingEmail.lng = parseFloat(lng) || 0;
       existingEmail.isVerified = Boolean(isVerified);
@@ -171,6 +181,7 @@ const registerVendor = async (req, res) => {
         phone: cleanPhone,
         address: address.trim(),
         city: city.trim(),
+        gstNumber: cleanGst,
         lat: parseFloat(lat) || 0,
         lng: parseFloat(lng) || 0,
         isVerified: Boolean(isVerified),
@@ -187,6 +198,7 @@ const registerVendor = async (req, res) => {
         storeName: vendor.storeName,
         email: vendor.email,
         phone: vendor.phone,
+        gstNumber: vendor.gstNumber,
         isVerified: vendor.isVerified,
         isApproved: false,
       },

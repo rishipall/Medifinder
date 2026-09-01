@@ -296,6 +296,99 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* HEALTHCARE PROVIDERS & PARTNERS ONBOARDING BANNER */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-teal-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-[#0a1120] relative overflow-hidden shadow-2xl space-y-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-slate-800 pb-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 text-teal-300 text-xs font-bold border border-teal-500/30 uppercase tracking-wider">
+                <i className="fa-solid fa-user-doctor text-teal-400"></i>
+                <span>For Healthcare Providers</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+                Are you a Doctor, Clinic, or Pharmacy Store Owner?
+              </h2>
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed font-light">
+                Partner with MediFind to receive direct patient phone calls, WhatsApp consultations, and list your live medicine inventory for nearby patients.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Card 1: For Doctors & Hospitals */}
+            <div className="p-6 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-4 hover:border-teal-500/60 transition-all shadow-lg group">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                  <i className="fa-solid fa-stethoscope"></i>
+                </div>
+                <span className="text-[11px] font-bold text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/30">
+                  Doctor / Hospital
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">Doctors & Medical Specialists</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  List your clinic specialization (Heart, Brain, Eye, Ear, General Physician) and receive patient inquiries via call, WhatsApp, or AI triage recommendations.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Link
+                  to="/doctor/register"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 font-extrabold text-xs text-center hover:brightness-110 shadow-md shadow-teal-500/20 transition-all"
+                >
+                  Register Doctor / Clinic
+                </Link>
+
+                <Link
+                  to="/doctor/login"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition-all"
+                >
+                  Doctor Login
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 2: For Pharmacy Store Owners */}
+            <div className="p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 space-y-4 hover:border-cyan-500/60 transition-all shadow-lg group">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                  <i className="fa-solid fa-house-medical"></i>
+                </div>
+                <span className="text-[11px] font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/30">
+                  Pharmacy Store
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">Pharmacy & Medical Stores</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Register your medical store, list stock quantity for 1,000+ medicines, and get ranked by GPS proximity when patients search for urgent medicines.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Link
+                  to="/vendor/register"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-extrabold text-xs text-center border border-cyan-500/40 transition-all"
+                >
+                  Register Pharmacy Store
+                </Link>
+
+                <Link
+                  to="/vendor/login"
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition-all"
+                >
+                  Vendor Login
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

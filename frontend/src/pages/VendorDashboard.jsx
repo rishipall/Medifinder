@@ -67,6 +67,22 @@ const VendorDashboard = () => {
     const { name, value, type, checked } = e.target;
     let finalVal = type === "checkbox" ? checked : value;
     if (name === "inStock") finalVal = value === "true";
+
+    // Real-time numeric validations
+    if (name === "price" || name === "mrp") {
+      if (typeof finalVal === "string" && finalVal !== "" && finalVal !== "." && isNaN(Number(finalVal))) {
+        finalVal = finalVal.replace(/[^0-9.]/g, "");
+        showMessage(`Only numbers are allowed for ${name === "price" ? "Price" : "MRP"}. ❌`, "error");
+      }
+    }
+
+    if (name === "stockQuantity") {
+      if (typeof finalVal === "string" && /\D/.test(finalVal)) {
+        finalVal = finalVal.replace(/\D/g, "");
+        showMessage("Only numbers (digits 0-9) are allowed for Stock Quantity. ❌", "error");
+      }
+    }
+
     setForm((prev) => ({ ...prev, [name]: finalVal }));
   };
 
@@ -403,8 +419,8 @@ const VendorDashboard = () => {
                 Selling Price (₹) <span className="text-rose-400">*</span>
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 name="price"
                 placeholder="e.g. 45"
                 value={form.price}
@@ -420,8 +436,8 @@ const VendorDashboard = () => {
                 M.R.P. Price (₹)
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 name="mrp"
                 placeholder="e.g. 55 (Displays discount %)"
                 value={form.mrp}
@@ -436,7 +452,8 @@ const VendorDashboard = () => {
                 Stock Quantity (Units)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="stockQuantity"
                 placeholder="e.g. 50"
                 value={form.stockQuantity}

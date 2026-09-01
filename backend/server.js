@@ -10,6 +10,7 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
+const doctorRoutes = require("./routes/doctorRoutes");
 const medicineRoutes = require("./routes/medicineRoutes");
 const consultRoutes = require("./routes/consultRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/vendors", vendorRoutes);
+app.use("/api/doctors", doctorRoutes);
 app.use("/api/medicines", medicineRoutes);
 app.use("/api/consult", consultRoutes);
 app.use("/api/admin", adminRoutes);

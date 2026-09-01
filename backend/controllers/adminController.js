@@ -1,5 +1,6 @@
 const Admin = require("../models/Admin");
 const Vendor = require("../models/Vendor");
+const Doctor = require("../models/Doctor");
 const StoreInventory = require("../models/StoreInventory");
 const Settings = require("../models/Settings");
 const bcrypt = require("bcryptjs");
@@ -202,6 +203,214 @@ const deleteStoreByAdmin = async (req, res) => {
   }
 };
 
+// --- DOCTOR MANAGEMENT CONTROLLERS FOR SUPER ADMIN ---
+
+// Get All Doctors & Hospital Stats
+const getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find().select("-password").sort({ createdAt: -1 }).lean();
+
+    const totalDoctors = doctors.length;
+    const pendingDoctors = doctors.filter((d) => !d.isApproved).length;
+    const approvedDoctors = doctors.filter((d) => d.isApproved).length;
+
+    res.status(200).json({
+      stats: {
+        totalDoctors,
+        pendingDoctors,
+        approvedDoctors,
+      },
+      doctors,
+    });
+  } catch (err) {
+    console.error("Get All Doctors Error:", err);
+    res.status(500).json({ message: "Server error ❌", error: err.message });
+  }
+};
+
+// Approve or Revoke Approval for a Doctor / Hospital
+const toggleDoctorApproval = async (req, res) => {
+  try {
+    const { isApproved } = req.body;
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found ❌" });
+    }
+
+    doctor.isApproved = isApproved !== undefined ? Boolean(isApproved) : !doctor.isApproved;
+    await doctor.save();
+
+    res.status(200).json({
+      message: `Doctor ${doctor.name} (${doctor.hospitalName}) is now ${doctor.isApproved ? "Approved ✅" : "Pending/Suspended ⚠️"}`,
+      doctor: {
+        id: doctor._id,
+        name: doctor.name,
+        hospitalName: doctor.hospitalName,
+        isApproved: doctor.isApproved,
+      },
+    });
+  } catch (err) {
+    console.error("Toggle Doctor Approval Error:", err);
+    res.status(500).json({ message: "Server error ❌", error: err.message });
+  }
+};
+
+// Super Admin Creates a Doctor Profile Directly
+const createDoctorByAdmin = async (req, res) => {
+  const {
+    name,
+    email,
+    password,
+    phone,
+    whatsapp,
+    hospitalName,
+    category,
+    specialization,
+    degree,
+    isGeneralPhysician,
+    address,
+    city,
+    lat,
+    lng,
+    gstNumber,
+    clinicDetails,
+    educationDetails,
+    isApproved,
+  } = req.body;
+
+  try {
+    const existing = await Doctor.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      return res.status(400).json({ message: "Email already registered for another doctor ❌" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password || "Doctor#Pass2026", 10);
+
+    let specArray = [];
+    if (Array.isArray(specialization)) specArray = specialization;
+    else if (typeof specialization === "string") specArray = specialization.split(",").map(s => s.trim()).filter(Boolean);
+    if (specArray.length === 0) specArray = ["General Physician"];
+
+    const newDoctor = await Doctor.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone.trim(),
+      whatsapp: (whatsapp || phone).trim(),
+      hospitalName: hospitalName.trim(),
+      category: category || "Clinic",
+      specialization: specArray,
+      degree: degree.trim(),
+      isGeneralPhysician: Boolean(isGeneralPhysician),
+      address: address.trim(),
+      city: city.trim(),
+      lat: parseFloat(lat) || 0,
+      lng: parseFloat(lng) || 0,
+      gstNumber: (gstNumber || "").toUpperCase().trim(),
+      clinicDetails: (clinicDetails || "").trim(),
+      educationDetails: (educationDetails || "").trim(),
+      isApproved: isApproved !== undefined ? Boolean(isApproved) : true,
+      isVerified: true,
+    });
+
+    res.status(201).json({
+      message: "Doctor profile created successfully by Super Admin ✅",
+      doctor: newDoctor,
+    });
+  } catch (err) {
+    console.error("Create Doctor By Admin Error:", err);
+    res.status(500).json({ message: "Server error ❌", error: err.message });
+  }
+};
+
+// Super Admin Updates a Doctor Profile Details
+const updateDoctorByAdmin = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found ❌" });
+    }
+
+    const {
+      name,
+      email,
+      phone,
+      whatsapp,
+      hospitalName,
+      category,
+      specialization,
+      degree,
+      isGeneralPhysician,
+      address,
+      city,
+      lat,
+      lng,
+      gstNumber,
+      clinicDetails,
+      educationDetails,
+      isApproved,
+      password,
+    } = req.body;
+
+    if (name) doctor.name = name.trim();
+    if (email) doctor.email = email.toLowerCase().trim();
+    if (phone) doctor.phone = phone.trim();
+    if (whatsapp !== undefined) doctor.whatsapp = whatsapp.trim();
+    if (hospitalName) doctor.hospitalName = hospitalName.trim();
+    if (category) doctor.category = category;
+    if (degree) doctor.degree = degree.trim();
+    if (isGeneralPhysician !== undefined) doctor.isGeneralPhysician = Boolean(isGeneralPhysician);
+    if (address) doctor.address = address.trim();
+    if (city) doctor.city = city.trim();
+    if (lat !== undefined) doctor.lat = parseFloat(lat) || 0;
+    if (lng !== undefined) doctor.lng = parseFloat(lng) || 0;
+    if (gstNumber !== undefined) doctor.gstNumber = gstNumber.trim().toUpperCase();
+    if (clinicDetails !== undefined) doctor.clinicDetails = clinicDetails.trim();
+    if (educationDetails !== undefined) doctor.educationDetails = educationDetails.trim();
+    if (isApproved !== undefined) doctor.isApproved = Boolean(isApproved);
+
+    if (specialization) {
+      let specArray = [];
+      if (Array.isArray(specialization)) specArray = specialization;
+      else if (typeof specialization === "string") specArray = specialization.split(",").map(s => s.trim()).filter(Boolean);
+      if (specArray.length > 0) doctor.specialization = specArray;
+    }
+
+    if (password && password.trim().length > 0) {
+      doctor.password = await bcrypt.hash(password.trim(), 10);
+    }
+
+    await doctor.save();
+
+    res.status(200).json({
+      message: `Doctor profile for ${doctor.name} updated successfully ✅`,
+      doctor,
+    });
+  } catch (err) {
+    console.error("Update Doctor By Admin Error:", err);
+    res.status(500).json({ message: "Server error ❌", error: err.message });
+  }
+};
+
+// Super Admin Deletes a Doctor Profile
+const deleteDoctorByAdmin = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found ❌" });
+    }
+
+    await Doctor.findByIdAndDelete(doctor._id);
+
+    res.status(200).json({
+      message: `Doctor profile for ${doctor.name} deleted successfully ✅`,
+    });
+  } catch (err) {
+    console.error("Delete Doctor By Admin Error:", err);
+    res.status(500).json({ message: "Server error ❌", error: err.message });
+  }
+};
+
 // Get Global Theme (Public)
 const getGlobalTheme = async (req, res) => {
   try {
@@ -246,5 +455,12 @@ module.exports = {
   deleteStoreByAdmin,
   getGlobalTheme,
   updateGlobalTheme,
+  getAllDoctors,
+  toggleDoctorApproval,
+  createDoctorByAdmin,
+  updateDoctorByAdmin,
+  deleteDoctorByAdmin,
 };
+
+
 

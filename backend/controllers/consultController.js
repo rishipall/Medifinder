@@ -1,6 +1,7 @@
 const https = require("https");
 const MasterMedicine = require("../models/MasterMedicine");
 const StoreInventory = require("../models/StoreInventory");
+const Doctor = require("../models/Doctor");
 
 // Clinical Expert Fallback Engine
 const generateClinicalFallback = (symptoms = [], duration = "1-2 Days", severity = "Moderate", additionalInfo = "") => {
@@ -113,7 +114,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     const options = {
       hostname: "generativelanguage.googleapis.com",
       port: 443,
-      path: `/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
+      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -146,7 +147,7 @@ const callGeminiAPI = (apiKey, prompt) => {
     });
 
     req.on("error", (e) => reject(e));
-    req.setTimeout(12000, () => {
+    req.setTimeout(6000, () => {
       req.destroy();
       reject(new Error("Gemini API request timed out"));
     });
@@ -192,7 +193,6 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
   "whenToSeeDoctor": "Clear criteria for when urgent care is needed",
   "disclaimer": "⚠️ Disclaimer: Educational AI triage tool. Not professional medical advice."
 }`;
-
       try {
         evalResult = await callGeminiAPI(apiKey, prompt);
       } catch (geminiError) {
@@ -225,7 +225,7 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
           const safeRegex = escapeRegex(medName.trim());
 
           try {
-            const masterMatch = await MasterMedicine.findOne({
+            const masterMatchPromise = MasterMedicine.findOne({
               $or: [
                 { name: { $regex: safeRegex, $options: "i" } },
                 { brandName: { $regex: safeRegex, $options: "i" } },
@@ -233,12 +233,16 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
               ]
             }).lean();
 
+            const timeoutDb = new Promise((res) => setTimeout(() => res(null), 1500));
+            const masterMatch = await Promise.race([masterMatchPromise, timeoutDb]);
+
             let invMatch = null;
             if (masterMatch) {
-              invMatch = await StoreInventory.findOne({
+              const invPromise = StoreInventory.findOne({
                 medicineId: masterMatch._id,
                 inStock: true
               }).lean();
+              invMatch = await Promise.race([invPromise, timeoutDb]);
             }
 
             return {
@@ -249,7 +253,6 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
               priceInDb: invMatch ? invMatch.price : null
             };
           } catch (dbErr) {
-            console.error("Error matching medicine in database:", dbErr);
             return {
               name: medName,
               purpose: medPurpose,
@@ -263,8 +266,68 @@ Please analyze these symptoms and respond STRICTLY in JSON format matching this 
       evalResult.suggestedMedicines = checkedMedicines;
     }
 
+    // 🩺 Doctor & Hospital Recommendation Engine
+    let recommendedDoctors = [];
+    try {
+      const symptomListLower = symptoms.map(s => String(s).toLowerCase());
+      const isCritical = severity === "High" || symptomListLower.some(s => s.includes("chest") || s.includes("breath") || s.includes("shortness") || s.includes("faint"));
+
+      let targetSpec = "General Physician";
+      if (symptomListLower.some(s => s.includes("chest") || s.includes("heart"))) {
+        targetSpec = "Heart";
+      } else if (symptomListLower.some(s => s.includes("headache") || s.includes("brain") || s.includes("migraine"))) {
+        targetSpec = "Brain";
+      } else if (symptomListLower.some(s => s.includes("eye") || s.includes("vision"))) {
+        targetSpec = "Eye";
+      } else if (symptomListLower.some(s => s.includes("ear") || s.includes("throat") || s.includes("cough"))) {
+        targetSpec = "Ear";
+      }
+
+      // Fetch approved doctors
+      const allApprovedDoctors = await Doctor.find({ isApproved: true })
+        .select("-password -otp -otpExpires -sessionToken")
+        .lean();
+
+      if (allApprovedDoctors.length > 0) {
+        // Sort & filter doctors based on specialization match or General Physician status
+        const specMatches = [];
+        const govOrBigHospitals = [];
+        const generalPhysicians = [];
+        const others = [];
+
+        allApprovedDoctors.forEach((doc) => {
+          const docSpecs = (doc.specialization || []).map(s => s.toLowerCase());
+          const hasSpecMatch = docSpecs.some(s => s.includes(targetSpec.toLowerCase()));
+          const isGovOrBig = ["Gov Hospital", "Semi Gov Hospital", "Big Hospital", "Hospital"].includes(doc.category);
+
+          if (hasSpecMatch) {
+            specMatches.push(doc);
+          } else if (isGovOrBig && isCritical) {
+            govOrBigHospitals.push(doc);
+          } else if (doc.isGeneralPhysician || docSpecs.some(s => s.includes("general"))) {
+            generalPhysicians.push(doc);
+          } else {
+            others.push(doc);
+          }
+        });
+
+        // Combine prioritized doctors list
+        if (isCritical) {
+          recommendedDoctors = [...specMatches, ...govOrBigHospitals, ...generalPhysicians, ...others];
+        } else {
+          recommendedDoctors = [...specMatches, ...generalPhysicians, ...govOrBigHospitals, ...others];
+        }
+
+        // Limit to top 6 relevant doctors
+        recommendedDoctors = recommendedDoctors.slice(0, 6);
+      }
+    } catch (docErr) {
+      console.warn("Doctor recommendation lookup error:", docErr.message);
+    }
+
     return res.json({
       success: true,
+      suggestedDoctors: recommendedDoctors,
       ...evalResult
     });
   } catch (err) {

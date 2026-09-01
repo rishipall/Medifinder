@@ -26,14 +26,15 @@ const getVendorProfile = async (req, res) => {
 // Update Current Logged-In Vendor Profile
 const updateVendorProfile = async (req, res) => {
   try {
-    const { name, storeName, phone, address, city, lat, lng, password } = req.body;
+    const { name, storeName, phone, address, city, gstNumber, lat, lng, password } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name.trim();
     if (storeName) updateData.storeName = storeName.trim();
-    if (phone) updateData.phone = phone.trim();
+    if (phone) updateData.phone = phone.replace(/\D/g, "").trim();
     if (address) updateData.address = address.trim();
     if (city) updateData.city = city.trim();
+    if (gstNumber !== undefined) updateData.gstNumber = gstNumber.toUpperCase().replace(/\s+/g, "").trim();
     if (lat !== undefined) updateData.lat = parseFloat(lat) || 0;
     if (lng !== undefined) updateData.lng = parseFloat(lng) || 0;
 

@@ -9,6 +9,7 @@ const VendorRegister = () => {
     password: "",
     storeName: "",
     phone: "",
+    gstNumber: "",
     address: "",
     city: "",
     lat: "",
@@ -31,7 +32,63 @@ const VendorRegister = () => {
 
   const navigate = useNavigate();
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let val = value;
+
+    // Disallow whitespace in strict fields
+    if (["email", "password", "phone", "gstNumber", "lat", "lng"].includes(name) && /\s/.test(val)) {
+      setError("White space / Spaces are not allowed in this input field. ❌");
+      return;
+    }
+
+    setError("");
+
+    // 1. Owner Name Validation: No numbers allowed
+    if (name === "name") {
+      if (/\d/.test(val)) {
+        val = val.replace(/\d/g, "");
+        setError("Numbers/Digits are not allowed in Owner Name field. ❌");
+      }
+    }
+
+    // 2. City Validation: No numbers allowed
+    if (name === "city") {
+      if (/\d/.test(val)) {
+        val = val.replace(/\d/g, "");
+        setError("Numbers/Digits are not allowed in City field. ❌");
+      }
+    }
+
+    // 3. Phone validation: numbers only
+    if (name === "phone") {
+      if (/[^\d]/.test(val)) {
+        val = val.replace(/\D/g, "");
+        setError("Please input numbers only for contact phone number. ❌");
+      }
+    }
+
+    // 4. GST Number validation & uppercase conversion
+    if (name === "gstNumber") {
+      const upper = val.toUpperCase();
+      if (/[^0-9A-Z]/.test(upper)) {
+        setError("Please input valid alphanumeric characters for GST Number. ❌");
+        return;
+      }
+      setForm({ ...form, [name]: upper });
+      return;
+    }
+
+    // 5. GPS Latitude / Longitude validation: numeric decimal
+    if (name === "lat" || name === "lng") {
+      if (val !== "" && val !== "-" && val !== "." && val !== "-." && isNaN(Number(val))) {
+        val = val.replace(/[^0-9.-]/g, "");
+        setError(`Please input numbers only for ${name === "lat" ? "Latitude" : "Longitude"}. ❌`);
+      }
+    }
+
+    setForm({ ...form, [name]: val });
+  };
 
   // Auto-Detect Current Store GPS Location Coordinates
   const handleDetectLocation = () => {
@@ -84,9 +141,22 @@ const VendorRegister = () => {
       return;
     }
 
+    if (!form.phone || form.phone.trim().length < 10) {
+      setError("Please enter a valid 10-digit numeric phone number. ❌");
+      setLoading(false);
+      return;
+    }
+
+    if (form.gstNumber && form.gstNumber.trim().length > 0 && form.gstNumber.trim().length !== 15) {
+      setError("Please enter a valid 15-character GSTIN number (e.g. 22AAAAA0000A1Z5). ❌");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data } = await API.post("/auth/send-otp", {
         email: form.email,
+        phone: form.phone,
       });
 
       if (data.success && data.otpToken) {
@@ -114,6 +184,7 @@ const VendorRegister = () => {
     try {
       const { data } = await API.post("/auth/send-otp", {
         email: form.email,
+        phone: form.phone,
       });
       if (data.success && data.otpToken) {
         setOtpToken(data.otpToken);
@@ -167,7 +238,8 @@ const VendorRegister = () => {
     { name: "email", label: "Email Address (for Email OTP)", placeholder: "store@pharmacy.com", type: "email", icon: "fa-envelope" },
     { name: "password", label: "Password", placeholder: "Min 6 characters", type: "password", icon: "fa-lock" },
     { name: "storeName", label: "Pharmacy / Store Name", placeholder: "Apollo Pharmacy", icon: "fa-house-medical" },
-    { name: "phone", label: "Contact Phone Number", placeholder: "+91 9876543210", icon: "fa-phone" },
+    { name: "phone", label: "Contact Phone Number", placeholder: "9876543210", type: "text", inputMode: "numeric", icon: "fa-phone" },
+    { name: "gstNumber", label: "GSTIN / GST Number (Optional)", placeholder: "22AAAAA0000A1Z5", type: "text", icon: "fa-receipt" },
     { name: "address", label: "Store Address", placeholder: "123, MG Road", icon: "fa-map-pin" },
     { name: "city", label: "City", placeholder: "Varanasi", icon: "fa-city" },
   ];
@@ -244,11 +316,12 @@ const VendorRegister = () => {
                   <i className={`fa-solid ${f.icon} absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs`}></i>
                   <input
                     type={f.type || "text"}
+                    inputMode={f.inputMode}
                     name={f.name}
                     placeholder={f.placeholder}
                     value={form[f.name]}
                     onChange={handleChange}
-                    required
+                    required={f.name !== "gstNumber"}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-teal-400 focus:outline-none"
                   />
                 </div>
@@ -283,8 +356,8 @@ const VendorRegister = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input
-                type="number"
-                step="any"
+                type="text"
+                inputMode="decimal"
                 name="lat"
                 placeholder="Latitude (e.g. 25.3176)"
                 value={form.lat}
@@ -292,8 +365,8 @@ const VendorRegister = () => {
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-teal-400 focus:outline-none"
               />
               <input
-                type="number"
-                step="any"
+                type="text"
+                inputMode="decimal"
                 name="lng"
                 placeholder="Longitude (e.g. 82.9739)"
                 value={form.lng}

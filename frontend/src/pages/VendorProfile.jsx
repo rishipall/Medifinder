@@ -12,6 +12,7 @@ const VendorProfile = () => {
     email: "",
     storeName: "",
     phone: "",
+    gstNumber: "",
     address: "",
     city: "",
     lat: "",
@@ -38,6 +39,7 @@ const VendorProfile = () => {
           email: profileData.email || "",
           storeName: profileData.storeName || "",
           phone: profileData.phone || "",
+          gstNumber: profileData.gstNumber || "",
           address: profileData.address || "",
           city: profileData.city || "",
           lat: profileData.lat !== undefined ? profileData.lat : "",
@@ -56,7 +58,60 @@ const VendorProfile = () => {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let val = value;
+
+    if (["phone", "gstNumber", "lat", "lng", "password"].includes(name) && /\s/.test(val)) {
+      setError("White space / Spaces are not allowed in this input field. ❌");
+      return;
+    }
+
+    setError("");
+
+    // 1. Owner Name Validation: No numbers allowed
+    if (name === "name") {
+      if (/\d/.test(val)) {
+        val = val.replace(/\d/g, "");
+        setError("Numbers/Digits are not allowed in Owner Name field. ❌");
+      }
+    }
+
+    // 2. City Validation: No numbers allowed
+    if (name === "city") {
+      if (/\d/.test(val)) {
+        val = val.replace(/\d/g, "");
+        setError("Numbers/Digits are not allowed in City field. ❌");
+      }
+    }
+
+    // 3. Phone validation: numbers only
+    if (name === "phone") {
+      if (/[^\d]/.test(val)) {
+        val = val.replace(/\D/g, "");
+        setError("Please input numbers only for phone number. ❌");
+      }
+    }
+
+    // 4. GST Number validation & uppercase conversion
+    if (name === "gstNumber") {
+      const upper = val.toUpperCase();
+      if (/[^0-9A-Z]/.test(upper)) {
+        setError("Please input valid alphanumeric characters for GST Number. ❌");
+        return;
+      }
+      setForm({ ...form, [name]: upper });
+      return;
+    }
+
+    // 5. GPS Latitude / Longitude validation: numeric decimal
+    if (name === "lat" || name === "lng") {
+      if (val !== "" && val !== "-" && val !== "." && val !== "-." && isNaN(Number(val))) {
+        val = val.replace(/[^0-9.-]/g, "");
+        setError(`Please input numbers only for ${name === "lat" ? "Latitude" : "Longitude"}. ❌`);
+      }
+    }
+
+    setForm({ ...form, [name]: val });
   };
 
   // 📍 GPS Location Auto-Detection
@@ -98,6 +153,7 @@ const VendorProfile = () => {
         name: form.name,
         storeName: form.storeName,
         phone: form.phone,
+        gstNumber: form.gstNumber,
         address: form.address,
         city: form.city,
         lat: form.lat,
@@ -347,8 +403,8 @@ const VendorProfile = () => {
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">Latitude</label>
                 <input
-                  type="number"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   name="lat"
                   placeholder="e.g. 25.3176"
                   value={form.lat}
@@ -359,8 +415,8 @@ const VendorProfile = () => {
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">Longitude</label>
                 <input
-                  type="number"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   name="lng"
                   placeholder="e.g. 82.9739"
                   value={form.lng}

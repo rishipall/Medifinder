@@ -9,6 +9,7 @@ const vendorSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     address: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
+    gstNumber: { type: String, default: "", trim: true, uppercase: true },
     lat: { type: Number, default: 0 },
     lng: { type: Number, default: 0 },
     isApproved: { type: Boolean, default: false },

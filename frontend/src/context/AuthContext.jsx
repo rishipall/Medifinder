@@ -20,9 +20,19 @@ const getStoredAdmin = () => {
   }
 };
 
+const getStoredDoctor = () => {
+  try {
+    const saved = localStorage.getItem("doctor");
+    return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+  } catch (err) {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [vendor, setVendor] = useState(getStoredVendor);
   const [admin, setAdmin] = useState(getStoredAdmin);
+  const [doctor, setDoctor] = useState(getStoredDoctor);
 
   const login = (vendorData, token) => {
     localStorage.setItem("token", token);
@@ -48,12 +58,25 @@ export const AuthProvider = ({ children }) => {
     setAdmin(null);
   };
 
+  const loginDoctor = (doctorData, token) => {
+    localStorage.setItem("doctorToken", token);
+    localStorage.setItem("doctor", JSON.stringify(doctorData));
+    setDoctor(doctorData);
+  };
+
+  const logoutDoctor = () => {
+    localStorage.removeItem("doctorToken");
+    localStorage.removeItem("doctor");
+    setDoctor(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ vendor, login, logout, admin, loginAdmin, logoutAdmin }}>
+    <AuthContext.Provider value={{ vendor, login, logout, admin, loginAdmin, logoutAdmin, doctor, loginDoctor, logoutDoctor }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => useContext(AuthContext);
+
 
